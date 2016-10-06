@@ -1,0 +1,11 @@
+BIN = gjk.exe
+CC = g++
+FLAGS = -Wall -pedantic
+INC = -I common/include
+LIB_PATH = common/win32/
+LOC_LIB = $(LIB_PATH)libglew32.dll.a $(LIB_PATH)libglfw3dll.a
+SYS_LIB = -lOpenGL32 -L ./ -lglew32 -lglfw3 -lm
+SRC = main.cpp
+
+all:
+	${CC} ${FLAGS} -o ${BIN} ${SRC} ${INC} ${LOC_LIB} ${SYS_LIB}

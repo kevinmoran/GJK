@@ -1,0 +1,10 @@
+*.d
+*.o
+*.exe
+*.out
+*.app
+*.gcda
+*.gcno
+.vscode/
+*.dSYM/
+gjk
