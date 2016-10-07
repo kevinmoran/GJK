@@ -1,93 +1,130 @@
+#pragma once
+
+//Kevin's implementation of the Gilbert-Johnson-Keerthi intersection algorithm
+//Most useful references (Huge thanks to all the authors):
 
 // "Implementing GJK" by Casey Muratori:
+// The best description of the algorithm from the ground up
 // https://www.youtube.com/watch?v=Qupqu1xe7Io
 
-vec3 support(Shape shape1, Shape shape2, vec3 dir){
-    vec3 p1 = get_farthest_point_in_dir(shape1, dir);
-    vec3 p2 = get_farthest_point_in_dir(shape2, dir);
+// "Implementing a GJK Intersection Query" by Phill Djonov
+// Interesting tips for implementing the algorithm
+// http://vec3.ca/gjk/implementation/
 
-    return (p1-p2);
+// "GJK Algorithm 3D by Sergiu Craitoiu
+// Has nice diagrams to visualise the tetrahedral case
+// http://in2gpu.com/2014/05/18/gjk-algorithm-3d/
+
+vec3 support(vec3 points[], int num_points, vec3 dir);
+bool gjk(Collider coll1, Collider coll2);
+void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir);
+bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir);
+
+bool gjk(Collider coll1, Collider coll2){
+    vec3 a, b, c, d; //Simple just a set of points (a is always most recently added)
+    vec3 search_dir = coll1.pos - coll2.pos; //initial search direction between colliders
+
+    //Get initial point for simplex
+    c = support(coll1, search_dir) - support(coll2, -search_dir);
+    search_dir = -c; //search in direction of origin
+
+    //Get second point for a line segment simplex
+    b = support(coll1, search_dir) - support(coll2, -search_dir);
+    if(dot(b, search_dir)<0) return false; //we didn't reach the origin, won't enclose it
+    search_dir = cross(cross(c-b,-b),c-b); //search normal to line segment
+
+    int i = 2; //int to keep track of dimensionality of simplex
+
+    for(;;){
+        a = support(coll1, search_dir) - support(coll2, -search_dir);
+        if(dot(a, search_dir)<0) return false; //we didn't reach the origin, won't enclose it
+        i++;
+
+        if(i==3){
+            update_simplex3(a,b,c,d,i,search_dir);
+        }
+        else if(i==4){
+            if(update_simplex4(a,b,c,d,i,search_dir)) return true;
+        }
+        else { //Should never get here
+            printf("WARNING GJK: i = %d\n", i);
+            getchar(); //Pause program so we can see how we ended up here!
+        }
+    }
 }
 
-bool gjk(){
-    vec3 simplex[4]; //Just a set of points
-    simplex[0] = some_initial_point;
-    vec3 search_dir = -simplex[0]; //search in direction of origin
-    int i = 0;
+//Triangle case
+void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir){
+    /*  
+    // Required winding order:
+    //  b
+    //  | \
+    //  |   \
+    //  |     \ a
+    //  |     /
+    //  |   /
+    //  | /
+    //  c
+    */
+    vec3 n = cross(b-a, c-a); //triangle's normal
+    vec3 AO = a*(-1); //direction to origin
 
-    while(true){
-        vec3 new_point = support(search_dir);
-        if(dot(new_point, search_dir)<0) return false; //we didn't reach the origin, won't enclose it
-        simplex[i++] = new_point; //add new point to our list
-        if(do_simplex(simplex, i, search_dir)) return true;
+    //Determine which facet is closest to origin, make that new simplex
+
+    i = 2; //hoisting this just cause
+    //Closest to edge AB
+    if(dot(cross(b-a, n), AO)>0){
+        c = a;
+        //i = 2;
+        search dir = cross(cross(b-a, AO), b-a);
+        return;
     }
+    //Closest to edge AC
+    if(dot(cross(n, c-a), AO)>0){
+        b = a;
+        //i = 2;
+        search dir = cross(cross(c-a, AO), c-a);
+        return;
+    }
+    
+    i = 3; //hoisting this just cause
+    //Above triangle
+    if(dot(n, AO)>0){
+        d = c;
+        c = b;
+        b = a;
+        //i = 3;
+        search_dir = n;
+        return;
+    }
+    //else
+    //Below triangle
+    d = b;
+    b = a;
+    //i = 3;
+    search_dir = -n;
+    return;
 }
 
-//If simplex is a tetrahedron return true if it encloses the origin
-//Otherwise,  get part of simplex closest to origin.
-//Make that the new simplex and search in direction of origin
+//Tetrahedral case
+bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir){
+    // a is peak/tip of pyramid, BCD is the base (counterclockwise winding order)
 
-bool do_simplex(float[4] &simplex, int dim, vec3 search_dir){
-    if(dim = 1){
-        //Simplex is a line segment AB
-        //Which is closer to the origin, A or AB?
+    //Get normals of three new faces
+    vec3 ABC = cross(b-a, c-a);
+    vec3 ACD = cross(c-a, d-a);
+    vec3 ADB = cross(d-a, b-a);
 
-        //Take plane with point A and normal AB
-        //Find out which side of the plane origin is on
+    vec3 AO = a*(-1); //dir to origin
 
-        vec3 A = simplex[1];
-        vec3 B = simplex[0];
-        vec3 AB = simplex[0] - simplex[1];
+    //Plane-test origin with 3 faces
+    bool d1 = (dot(ABC, AO)>0);
+    bool d2 = (dot(ACD, AO)>0);
+    bool d3 = (dot(ADB, AO)>0);
 
-        if(dot(AB,-A)>0){
-            simplex = {A, B};
-            search_dir = cross(cross(-A, AB), AB);
-        }
-        else {
-            simplex = {A};
-            search_dir = -A;
-        }
+    if(!d1 && !d2 && !d3)) return true;
 
-    }
-    else if(dim = 2){
-        //Simplex is triangle ABC
-        //Which is closer to origin?
-        //point A, B or C, edge AB, BC or AC,
-        //or triangle ABC (above or below)
-        //Irrelevant cases: (BC was old simplex)
-        //origin can't be closest to BC, B or C
-
-        //So the cases we actually care about are:
-        //Origin is closest to point A,
-        //edges AB or AC or triangle ABC (above or below)
-
-        vec3 ABC = cross(AB, AC); //orthogonal to face of triangle
-
-        if(dot(cross(ABC, AC), -A)>0){
-            //origin is in direction of AC's normal
-            if(dot(AC, -A)>0){
-                simplex = {A,C};
-                search_dir = cross(cross(AC, -A), AC);
-            }
-            else *
-        }
-        else if (dot(cross(AB,ABC), -A)>0) *
-        else if (dot(ABC, -A)>0){
-            simplex = [A,B,C]; 
-            search_dir = ABC;
-        }
-        else
-            simplex = [A,C,B];
-            search_dir = -ABC;
-        }
-
-        * if (dot(AB, -A)>0) {
-            simplex = [A,B];
-            search_dir = cross(cross(AB,-A), AB);
-        }
-        else {
-            simplex = [A];
-            search_dir = -A;
-        }
-    }
+    //Determine which facet is closest to origin, make that new simplex
+    
+    return false;
 }
