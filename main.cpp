@@ -12,6 +12,7 @@ float gl_aspect_ratio = (float)gl_width/gl_height;
 #include "Shader.h"
 #include "load_obj.h"
 #include "FlyCam.h"
+#include "GJK.h"
 
 int main() {
 	if (!init_gl(window, gl_width, gl_height)){ return 1; }
@@ -31,7 +32,7 @@ int main() {
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-	free(vp);
+	//free(vp);
 
 	//Load shader
 	Shader box_shader("MVP.vert", "uniform_colour.frag");
@@ -50,6 +51,10 @@ int main() {
 	mat4 player_M = translate(identity_mat4(), player_pos);
 	vec4 player_colour = vec4(0.1f, 0.8f, 0.3f, 1.0f);
 	float player_speed = 10;
+	Collider player_collider;
+	player_collider.pos = player_pos;
+	player_collider.points = vp;
+	player_collider.num_points = 8;
 
 	//Camera setup
 	FlyCam fly_cam;

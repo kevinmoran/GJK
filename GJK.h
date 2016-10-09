@@ -15,7 +15,9 @@
 // Has nice diagrams to visualise the tetrahedral case
 // http://in2gpu.com/2014/05/18/gjk-algorithm-3d/
 
-vec3 support(vec3 points[], int num_points, vec3 dir);
+struct Collider;
+
+vec3 support(Collider shape, vec3 dir);
 bool gjk(Collider coll1, Collider coll2);
 void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir);
 bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir);
@@ -23,38 +25,30 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
 //General physics collider object. Yay polymorphism!
 struct Collider{
 	vec3 pos; //origin in world space
+	float *points;
+	int num_points;
 	//mat3 R; //rotation component of model matrix
 			  //probably also scale
 			  //TODO: write mat3 to mat4 function to get this from mat4 model matrix
 };
-
-//Just an array of points
-struct Collider::Polytope{
-	vec3 *points;
-	int num_points;
-}
-
-struct Collider::BSphere{
-	float radius;
-}
 
 bool gjk(Collider coll1, Collider coll2){
     vec3 a, b, c, d; //Simplex: just a set of points (a is always most recently added)
     vec3 search_dir = coll1.pos - coll2.pos; //initial search direction between colliders
 
     //Get initial point for simplex
-    c = support(coll1, search_dir) - support(coll2, -search_dir);
-    search_dir = -c; //search in direction of origin
+    c = support(coll1, search_dir) - support(coll2, search_dir*(-1));
+    search_dir = c*(-1); //search in direction of origin
 
     //Get second point for a line segment simplex
-    b = support(coll1, search_dir) - support(coll2, -search_dir);
+    b = support(coll1, search_dir) - support(coll2, search_dir*(-1));
     if(dot(b, search_dir)<0) return false; //we didn't reach the origin, won't enclose it
-    search_dir = cross(cross(c-b,-b),c-b); //search normal to line segment
+    search_dir = cross(cross(c-b,b*(-1)),c-b); //search normal to line segment
 
     int i = 2; //int to keep track of dimensionality of simplex
 
     for(;;){
-        a = support(coll1, search_dir) - support(coll2, -search_dir);
+        a = support(coll1, search_dir) - support(coll2, search_dir*(-1));
         if(dot(a, search_dir)<0) return false; //we didn't reach the origin, won't enclose it
         i++;
 
@@ -94,14 +88,14 @@ void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
     if(dot(cross(b-a, n), AO)>0){
         c = a;
         //i = 2;
-        search dir = cross(cross(b-a, AO), b-a);
+        search_dir = cross(cross(b-a, AO), b-a);
         return;
     }
     //Closest to edge AC
     if(dot(cross(n, c-a), AO)>0){
         b = a;
         //i = 2;
-        search dir = cross(cross(c-a, AO), c-a);
+        search_dir = cross(cross(c-a, AO), c-a);
         return;
     }
     
@@ -120,7 +114,7 @@ void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
     d = b;
     b = a;
     //i = 3;
-    search_dir = -n;
+    search_dir = n*(-1);
     return;
 }
 
@@ -165,4 +159,8 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
     //The origin could conceivably be closest to an edge on the tetrahedron
     //Right now I don't think it'll make a difference to limit our new simplices
     //to just one of the faces, maybe test it later.
+}
+
+vec3 support(Collider shape, vec3 dir){
+    return vec3(0,0,0);
 }
