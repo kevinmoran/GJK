@@ -74,21 +74,15 @@ bool load_obj(const char* file_name, float* &points, int &point_count){
 			else{ //vertex positions and tex coords and normals
 				sscanf(line, "f %i/%*i/%*i %i/%*i/%*i %i/%*i/%*i", &indices[0], &indices[1], &indices[2]);
 			}
-			printf("Adding triangle\n");
 			for(int i=0; i<3; i++){ //For the 3 vertices in this face
 				points[points_index+3*i  ] = vp_unsorted[3*(indices[i]-1)];   //x // (indices[i]-1) -> wavefront obj doesn't use zero indexing
 				points[points_index+3*i+1] = vp_unsorted[3*(indices[i]-1)+1]; //y
 				points[points_index+3*i+2] = vp_unsorted[3*(indices[i]-1)+2]; //z
-				printf("V%i: %f %f %f\n", i, points[points_index+3*i], points[points_index+3*i+1], points[points_index+3*i+2]);
-				getchar();
 			}
 			points_index+=9;
 		}//end elseif for 'f'
 	}//endwhile
 
-	for(int i=0; i<3*point_count; i+=3){
-		printf("%f %f %f\n", points[i], points[i+1], points[i+2]);
-	}
 	fclose(fp);
 	free(vp_unsorted);
 	return true;
