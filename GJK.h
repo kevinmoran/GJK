@@ -20,8 +20,26 @@ bool gjk(Collider coll1, Collider coll2);
 void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir);
 bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir);
 
+//General physics collider object. Yay polymorphism!
+struct Collider{
+	vec3 pos; //origin in world space
+	//mat3 R; //rotation component of model matrix
+			  //probably also scale
+			  //TODO: write mat3 to mat4 function to get this from mat4 model matrix
+};
+
+//Just an array of points
+struct Collider::Polytope{
+	vec3 *points;
+	int num_points;
+}
+
+struct Collider::BSphere{
+	float radius;
+}
+
 bool gjk(Collider coll1, Collider coll2){
-    vec3 a, b, c, d; //Simple just a set of points (a is always most recently added)
+    vec3 a, b, c, d; //Simplex: just a set of points (a is always most recently added)
     vec3 search_dir = coll1.pos - coll2.pos; //initial search direction between colliders
 
     //Get initial point for simplex
@@ -109,6 +127,7 @@ void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
 //Tetrahedral case
 bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir){
     // a is peak/tip of pyramid, BCD is the base (counterclockwise winding order)
+	//We know a priori that origin is above BCD and below a
 
     //Get normals of three new faces
     vec3 ABC = cross(b-a, c-a);
@@ -116,15 +135,34 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
     vec3 ADB = cross(d-a, b-a);
 
     vec3 AO = a*(-1); //dir to origin
+    i = 3; //hoisting this just cause
 
     //Plane-test origin with 3 faces
-    bool d1 = (dot(ABC, AO)>0);
-    bool d2 = (dot(ACD, AO)>0);
-    bool d3 = (dot(ADB, AO)>0);
+    if(dot(ABC, AO)>0){
+    	//In front of ABC
+    	d = c;
+    	c = b;
+    	b = a;
+    	return false;
+    }
+    if(dot(ACD, AO)>0){
+    	//In front of ACD
+    	b = a;
+    	return false;
+    }
+    if(dot(ADB, AO)>0){
+    	//In front of ADB
+    	c = d;
+    	d = b;
+    	b = a;
+    	return false;
+    }
 
-    if(!d1 && !d2 && !d3)) return true;
+    //else inside tetrahedron; enclosed!
+    return true;
 
-    //Determine which facet is closest to origin, make that new simplex
-    
-    return false;
+    //Note: in the case where two of the faces have similar normals,
+    //The origin could conceivably be closest to an edge on the tetrahedron
+    //Right now I don't think it'll make a difference to limit our new simplices
+    //to just one of the faces, maybe test it later.
 }
