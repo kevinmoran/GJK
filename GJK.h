@@ -47,7 +47,7 @@ bool gjk(Collider coll1, Collider coll2){
 
     int i = 2; //int to keep track of dimensionality of simplex
 
-    for(;;){
+    for(int iterations = 0; iterations< 32; iterations++){
         a = support(coll1, search_dir) - support(coll2, search_dir*(-1));
         if(dot(a, search_dir)<0) return false; //we didn't reach the origin, won't enclose it
         i++;
@@ -63,6 +63,7 @@ bool gjk(Collider coll1, Collider coll2){
             getchar(); //Pause program so we can see how we ended up here!
         }
     }
+    return false;
 }
 
 //Triangle case
@@ -162,5 +163,18 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
 }
 
 vec3 support(Collider shape, vec3 dir){
-    return vec3(0,0,0);
+    float max_dot = -99;
+    int support_index = 0;
+    for(int i=0; i<shape.num_points*3; i+=3){
+        vec3 v(shape.points[i], shape.points[i+1], shape.points[i+2]);
+        float d = dot(v, dir);
+        if(d>max_dot){
+            max_dot = d;
+            support_index = i;
+        }
+    }
+    return (vec3(shape.points[support_index], 
+                shape.points[support_index+1], 
+                shape.points[support_index+2])
+            + shape.pos);
 }

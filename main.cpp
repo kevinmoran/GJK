@@ -45,12 +45,25 @@ int main() {
 	M[2] = translate(identity_mat4(), vec3(0, 0, 0));
 	M[3] = translate(identity_mat4(), vec3(1.5f, 0, -1.5f));
 	M[4] = translate(identity_mat4(), vec3(1.5f, 0, 1.5f));
-	vec4 box_colour = vec4(0.8f, 0.1f, 0.1f, 1);
+	vec4 box_colour[5];
 
 	vec3 player_pos = vec3(0,0,3);
 	mat4 player_M = translate(identity_mat4(), player_pos);
 	vec4 player_colour = vec4(0.1f, 0.8f, 0.3f, 1.0f);
 	float player_speed = 10;
+
+	Collider box_collider[5];
+	box_collider[0].pos = vec3(-1.5f, 0, -1.5f);
+	box_collider[1].pos = vec3(-1.5f, 0, 1.5f);
+	box_collider[2].pos = vec3(0, 0, 0);
+	box_collider[3].pos = vec3(1.5f, 0, -1.5f);
+	box_collider[4].pos = vec3(1.5f, 0, 1.5f);
+	for(int i=0; i<5; i++){
+		box_collider[i].points = vp;
+		box_collider[i].num_points = 8;
+		box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
+	}
+
 	Collider player_collider;
 	player_collider.pos = player_pos;
 	player_collider.points = vp;
@@ -120,14 +133,22 @@ int main() {
 			}
 			player_M = translate(identity_mat4(), player_pos);
 		}
+
+		player_collider.pos = player_pos;
+		for(int i=0; i<5; i++){
+			if(gjk(player_collider, box_collider[i])) 
+				box_colour[i] = vec4(0.8f, 0.6f, 0.0f, 1);
+			else 
+				box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
+		}
 		//Rendering
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glUseProgram(box_shader.prog_id);
 		glBindVertexArray(vao);
 		glUniformMatrix4fv(box_shader.V_loc, 1, GL_FALSE, fly_cam.V.m);
-		glUniform4fv(colour_loc, 1, box_colour.v);
 		for(int i=0; i<5; i++){
+			glUniform4fv(colour_loc, 1, box_colour[i].v);
 			glUniformMatrix4fv(box_shader.M_loc, 1, GL_FALSE, M[i].m);
 			glDrawArrays(GL_TRIANGLES, 0, point_count);
 		}
