@@ -326,6 +326,28 @@ struct mat3 {
 		m[7] = h;
 		m[8] = i;
 	}
+	
+	mat3(mat4);
+
+	vec3 operator* (const vec3& rhs) {
+		// 0x + 3y + 6z
+		float x =
+			m[0] * rhs.v[0] +
+			m[3] * rhs.v[1] +
+			m[6] * rhs.v[2];
+		// 1x + 4y + 7z
+		float y = 
+			m[1] * rhs.v[0] +
+			m[4] * rhs.v[1] +
+			m[7] * rhs.v[2];
+		// 2x + 5y + 8z
+		float z = 
+			m[2] * rhs.v[0] +
+			m[5] * rhs.v[1] +
+			m[8] * rhs.v[2];
+		return vec3 (x, y, z);
+	}
+
 	float m[9];
 };
 
@@ -367,17 +389,20 @@ struct mat4 {
 			m[8] * rhs.v[2] +
 			m[12] * rhs.v[3];
 		// 1x + 5y + 9z + 13w
-		float y = m[1] * rhs.v[0] +
+		float y = 
+			m[1] * rhs.v[0] +
 			m[5] * rhs.v[1] +
 			m[9] * rhs.v[2] +
 			m[13] * rhs.v[3];
 		// 2x + 6y + 10z + 14w
-		float z = m[2] * rhs.v[0] +
+		float z = 
+			m[2] * rhs.v[0] +
 			m[6] * rhs.v[1] +
 			m[10] * rhs.v[2] +
 			m[14] * rhs.v[3];
 		// 3x + 7y + 11z + 15w
-		float w = m[3] * rhs.v[0] +
+		float w = 
+			m[3] * rhs.v[0] +
 			m[7] * rhs.v[1] +
 			m[11] * rhs.v[2] +
 			m[15] * rhs.v[3];
@@ -626,6 +651,19 @@ inline mat4 identity_mat4 () {
 	 2  6 10 14
 	 3  7 11 15
 	*/
+}
+
+inline mat3::mat3(mat4 RTS){
+	//Grab R and S from RTS matrix
+	m[0] = RTS.m[0];
+	m[1] = RTS.m[1];
+	m[2] = RTS.m[2];
+	m[3] = RTS.m[4];
+	m[4] = RTS.m[5];
+	m[5] = RTS.m[6];
+	m[6] = RTS.m[8];
+	m[7] = RTS.m[9];
+	m[8] = RTS.m[10];
 }
 
 // returns a scalar value with the determinant for a 4x4 matrix

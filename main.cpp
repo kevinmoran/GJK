@@ -50,12 +50,12 @@ int main() {
 	GLuint colour_loc = glGetUniformLocation(box_shader.prog_id, "colour");
 	glUseProgram(box_shader.prog_id);
 
-	mat4 M[5];
-	M[0] = translate(identity_mat4(), vec3(-1.5f, 0, -1.5f));
-	M[1] = translate(identity_mat4(), vec3(-1.5f, 0, 1.5f));
-	M[2] = translate(identity_mat4(), vec3(0, 0, 0));
-	M[3] = translate(identity_mat4(), vec3(1.5f, 0, -1.5f));
-	M[4] = translate(identity_mat4(), vec3(1.5f, 0, 1.5f));
+	mat4 box_M[5];
+	box_M[0] = translate(rotate_y_deg(identity_mat4(), 45), vec3(-1.5f, 0, -1.5f));
+	box_M[1] = translate(identity_mat4(), vec3(-1.5f, 0, 1.5f));
+	box_M[2] = translate(identity_mat4(), vec3(0, 0, 0));
+	box_M[3] = translate(identity_mat4(), vec3(1.5f, 0, -1.5f));
+	box_M[4] = translate(identity_mat4(), vec3(1.5f, 0, 1.5f));
 	vec4 box_colour[5];
 
 	vec3 player_pos = vec3(0,0,3);
@@ -72,6 +72,8 @@ int main() {
 	for(int i=0; i<5; i++){
 		box_collider[i].points = box_points;
 		box_collider[i].num_points = 8;
+		box_collider[i].M = box_M[i];
+		box_collider[i].M_inverse = inverse(box_M[i]);
 		box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
 	}
 
@@ -79,12 +81,13 @@ int main() {
 	player_collider.pos = player_pos;
 	player_collider.points = box_points;
 	player_collider.num_points = 8;
+	player_collider.M = identity_mat4();
+	player_collider.M_inverse = identity_mat4();
 
 	//Camera setup
 	FlyCam fly_cam;
 	fly_cam.init(vec3(2,3,6), vec3(0,0,0));
 
-	glUniformMatrix4fv(box_shader.M_loc, 1, GL_FALSE, M[0].m);
 	glUniformMatrix4fv(box_shader.V_loc, 1, GL_FALSE, fly_cam.V.m);
 	glUniformMatrix4fv(box_shader.P_loc, 1, GL_FALSE, fly_cam.P.m);
 
@@ -162,7 +165,7 @@ int main() {
 		glUniformMatrix4fv(box_shader.V_loc, 1, GL_FALSE, fly_cam.V.m);
 		for(int i=0; i<5; i++){
 			glUniform4fv(colour_loc, 1, box_colour[i].v);
-			glUniformMatrix4fv(box_shader.M_loc, 1, GL_FALSE, M[i].m);
+			glUniformMatrix4fv(box_shader.M_loc, 1, GL_FALSE, box_M[i].m);
 			glDrawArrays(GL_TRIANGLES, 0, point_count);
 		}
 

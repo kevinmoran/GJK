@@ -11,7 +11,7 @@
 // Interesting tips for implementing the algorithm
 // http://vec3.ca/gjk/implementation/
 
-// "GJK Algorithm 3D by Sergiu Craitoiu
+// "GJK Algorithm 3D" by Sergiu Craitoiu
 // Has nice diagrams to visualise the tetrahedral case
 // http://in2gpu.com/2014/05/18/gjk-algorithm-3d/
 
@@ -24,11 +24,10 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
 
 struct Collider{
 	vec3 pos; //origin in world space
-	float *points;
-	int num_points;
-	//mat3 R; //rotation component of model matrix
-			  //probably also scale
-			  //TODO: write mat3 to mat4 function to get this from mat4 model matrix
+	float *points; //array of verts (x0 y0 z0 x1 y1 z1 etc)
+	int num_points; //num vertices 
+    mat3 M;         //rotation/scale component of model matrix
+	mat3 M_inverse; 
 };
 
 bool gjk(Collider coll1, Collider coll2){
@@ -172,7 +171,7 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
 }
 
 vec3 support(Collider shape, vec3 dir){
-    //TODO transform dir by shape's inverse rotation matrix
+    dir = shape.M_inverse*dir; //transform dir by shape's inverse rotation matrix
     float max_dot = -99;
     int support_index = 0;
     for(int i=0; i<shape.num_points*3; i+=3){
@@ -183,7 +182,7 @@ vec3 support(Collider shape, vec3 dir){
             support_index = i;
         }
     }
-    return (vec3(shape.points[support_index], 
+    return (shape.M*vec3(shape.points[support_index], 
                 shape.points[support_index+1], 
                 shape.points[support_index+2])
             + shape.pos);
