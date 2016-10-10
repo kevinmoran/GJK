@@ -30,6 +30,24 @@ struct Collider{
 	mat3 M_inverse; 
 };
 
+vec3 support(Collider shape, vec3 dir){
+    dir = shape.M_inverse*dir; //transform dir by shape's inverse rotation matrix
+    float max_dot = -99;
+    int support_index = 0;
+    for(int i=0; i<shape.num_points*3; i+=3){
+        vec3 v(shape.points[i], shape.points[i+1], shape.points[i+2]);
+        float d = dot(v, dir);
+        if(d>max_dot){
+            max_dot = d;
+            support_index = i;
+        }
+    }
+    return (shape.M*vec3(shape.points[support_index], 
+                shape.points[support_index+1], 
+                shape.points[support_index+2])
+            + shape.pos);
+}
+
 bool gjk(Collider coll1, Collider coll2){
     vec3 a, b, c, d; //Simplex: just a set of points (a is always most recently added)
     vec3 search_dir = coll1.pos - coll2.pos; //initial search direction between colliders
@@ -170,20 +188,35 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
     //to just one of the faces, maybe test it later.
 }
 
-vec3 support(Collider shape, vec3 dir){
-    dir = shape.M_inverse*dir; //transform dir by shape's inverse rotation matrix
-    float max_dot = -99;
-    int support_index = 0;
-    for(int i=0; i<shape.num_points*3; i+=3){
-        vec3 v(shape.points[i], shape.points[i+1], shape.points[i+2]);
-        float d = dot(v, dir);
-        if(d>max_dot){
-            max_dot = d;
-            support_index = i;
-        }
-    }
-    return (shape.M*vec3(shape.points[support_index], 
-                shape.points[support_index+1], 
-                shape.points[support_index+2])
-            + shape.pos);
+//Expanding Polytope Algorithm
+//Find minimum translation vector to resolve collision
+#define EPA_TOLERANCE 0.0001
+vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
+    //vec3 faces[16][2]; //point on face0, face0's normal, point on face1, etc.
+    
+    // faces[0][0] = a;
+    // faces[0][1] = normalise(cross(b-a, c-a)); //ABC
+    // faces[1][0] = a;
+    // faces[1][1] = normalise(cross(c-a, d-a)); //ACD
+    // faces[2][0] = a;
+    // faces[2][1] = normalise(cross(d-a, b-a)); //ADB
+    // faces[3][0] = b;
+    // faces[3][1] = normalise(cross(c-b, d-b)); //BCD
+
+    // float min_dist = 99;
+    // int closest_face_index = -1;
+    // for(int i=0; i<4; i++){
+    //     float d = dot(faces[i][0], faces[i][1]);
+    //     if(d<min_dist){
+    //         min_dist = d;
+    //         closest_face_index = i;
+    //     }
+    // }
+
+    //Loop
+        //Whichever face is closest to origin,
+        //Search for support in direction of its normal
+        //If this vertex is not further from the origin (by some thresh) return
+        //Update simplex: Split face in two using new vertex
+    return vec3(0,0,0);
 }
