@@ -164,6 +164,12 @@ struct vec2 {
 		v[1] = rhs.v[1];
 		return *this;
 	}
+	vec2 operator- () {
+		vec2 vc;
+		vc.v[0] = v[0] * (-1);
+		vc.v[1] = v[1] * (-1);
+		return vc;
+	}
 };
 
 /* putting method definitions in the header inside the struct forces them to
@@ -261,6 +267,14 @@ struct vec3 {
 		v[1] = rhs.v[1];
 		v[2] = rhs.v[2];
 		return *this;
+	}
+
+	vec3 operator- () {
+		vec3 vc;
+		vc.v[0] = v[0] * (-1);
+		vc.v[1] = v[1] * (-1);
+		vc.v[2] = v[2] * (-1);
+		return vc;
 	}
 
 	// internal data

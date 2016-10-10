@@ -22,7 +22,6 @@ bool gjk(Collider coll1, Collider coll2);
 void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir);
 bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir);
 
-//General physics collider object. Yay polymorphism!
 struct Collider{
 	vec3 pos; //origin in world space
 	float *points;
@@ -37,50 +36,51 @@ bool gjk(Collider coll1, Collider coll2){
     vec3 search_dir = coll1.pos - coll2.pos; //initial search direction between colliders
 
     //Get initial point for simplex
-    c = support(coll1, search_dir) - support(coll2, search_dir*(-1));
-    search_dir = c*(-1); //search in direction of origin
+    c = support(coll1, search_dir) - support(coll2, -search_dir);
+    search_dir = -c; //search in direction of origin
 
     //Get second point for a line segment simplex
-    b = support(coll1, search_dir) - support(coll2, search_dir*(-1));
-    if(dot(b, search_dir)<0) return false; //we didn't reach the origin, won't enclose it
-    search_dir = cross(cross(c-b,b*(-1)),c-b); //search normal to line segment
-
-    int i = 2; //int to keep track of dimensionality of simplex
-
-    for(int iterations = 0; iterations< 32; iterations++){
-        a = support(coll1, search_dir) - support(coll2, search_dir*(-1));
-        if(dot(a, search_dir)<0) return false; //we didn't reach the origin, won't enclose it
+    b = support(coll1, search_dir) - support(coll2, -search_dir);
+    if(dot(b, search_dir)<0) {
+        //printf("GJK No collision (search didn't reach origin). Exited before loop\n");
+        return false; //we didn't reach the origin, won't enclose it
+    }
+    search_dir = cross(cross(c-b,-b),c-b); //search normal to line segment towards origin
+    int i = 2; //simplex dimension
+    
+    for(int iterations=0; iterations<64; iterations++){
+        a = support(coll1, search_dir) - support(coll2, -search_dir);
+        if(dot(a, search_dir)<0) {
+            //printf("GJK No collision (search didn't reach origin). Iterations: %d\n", iterations);
+            return false; //we didn't reach the origin, won't enclose it
+        }
         i++;
 
         if(i==3){
             update_simplex3(a,b,c,d,i,search_dir);
         }
-        else if(i==4){
-            if(update_simplex4(a,b,c,d,i,search_dir)) return true;
+        else if(update_simplex4(a,b,c,d,i,search_dir)) {
+                //printf("GJK Collision. Iterations: %d\n", iterations);
+                return true;
         }
-        else { //Should never get here
-            printf("WARNING GJK: i = %d\n", i);
-            getchar(); //Pause program so we can see how we ended up here!
-        }
-    }
+    }//endfor
+    //printf("GJK No collision. Ran out of iterations\n");
     return false;
 }
 
 //Triangle case
 void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir){
-    /*  
-    // Required winding order:
+    /* Required winding order:
     //  b
     //  | \
     //  |   \
-    //  |     \ a
-    //  |     /
+    //  |    a
     //  |   /
     //  | /
     //  c
     */
     vec3 n = cross(b-a, c-a); //triangle's normal
-    vec3 AO = a*(-1); //direction to origin
+    vec3 AO = -a; //direction to origin
 
     //Determine which facet is closest to origin, make that new simplex
 
@@ -115,7 +115,7 @@ void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
     d = b;
     b = a;
     //i = 3;
-    search_dir = n*(-1);
+    search_dir = -n;
     return;
 }
 
@@ -129,20 +129,27 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
     vec3 ACD = cross(c-a, d-a);
     vec3 ADB = cross(d-a, b-a);
 
-    vec3 AO = a*(-1); //dir to origin
+    vec3 AO = -a; //dir to origin
     i = 3; //hoisting this just cause
 
     //Plane-test origin with 3 faces
+    //TODO: Not sure what to do with search direction here, or
+    //whether to call update_simplex3...
+    //Makes no difference for AABBS, test with more complex colliders!!!
     if(dot(ABC, AO)>0){
     	//In front of ABC
     	d = c;
     	c = b;
     	b = a;
+        //search_dir = ABC;
+        //update_simplex3(a,b,c,d,i,search_dir);
     	return false;
     }
     if(dot(ACD, AO)>0){
     	//In front of ACD
     	b = a;
+        //search_dir = ABC;
+        //update_simplex3(a,b,c,d,i,search_dir);
     	return false;
     }
     if(dot(ADB, AO)>0){
@@ -150,6 +157,8 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
     	c = d;
     	d = b;
     	b = a;
+        //search_dir = ABC;
+        //update_simplex3(a,b,c,d,i,search_dir);
     	return false;
     }
 
@@ -163,6 +172,7 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
 }
 
 vec3 support(Collider shape, vec3 dir){
+    //TODO transform dir by shape's inverse rotation matrix
     float max_dot = -99;
     int support_index = 0;
     for(int i=0; i<shape.num_points*3; i+=3){

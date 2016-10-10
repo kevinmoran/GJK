@@ -16,10 +16,21 @@ float gl_aspect_ratio = (float)gl_width/gl_height;
 
 int main() {
 	if (!init_gl(window, gl_width, gl_height)){ return 1; }
-
 	float* vp = NULL;
 	int point_count = 0;
 	load_obj("cube.obj", vp, point_count);
+
+	//Collision mesh for GJK
+	float box_points[] = {
+		-0.5f, -0.5f, -0.5f,
+		0.5f, -0.5f, -0.5f,
+		-0.5f, -0.5f, 0.5f,
+		0.5f, -0.5f, 0.5f,
+		-0.5f, 0.5f, -0.5f,
+		0.5f, 0.5f, -0.5f,
+		-0.5f, 0.5f, 0.5f,
+		0.5f, 0.5f, 0.5f
+	};
 
 	GLuint vao;
 	GLuint points_vbo;
@@ -32,7 +43,7 @@ int main() {
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-	//free(vp);
+	free(vp);
 
 	//Load shader
 	Shader box_shader("MVP.vert", "uniform_colour.frag");
@@ -59,14 +70,14 @@ int main() {
 	box_collider[3].pos = vec3(1.5f, 0, -1.5f);
 	box_collider[4].pos = vec3(1.5f, 0, 1.5f);
 	for(int i=0; i<5; i++){
-		box_collider[i].points = vp;
+		box_collider[i].points = box_points;
 		box_collider[i].num_points = 8;
 		box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
 	}
 
 	Collider player_collider;
 	player_collider.pos = player_pos;
-	player_collider.points = vp;
+	player_collider.points = box_points;
 	player_collider.num_points = 8;
 
 	//Camera setup
@@ -134,13 +145,15 @@ int main() {
 			player_M = translate(identity_mat4(), player_pos);
 		}
 
-		player_collider.pos = player_pos;
-		for(int i=0; i<5; i++){
-			if(gjk(player_collider, box_collider[i])) 
-				box_colour[i] = vec4(0.8f, 0.6f, 0.0f, 1);
-			else 
-				box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
-		}
+		//if (glfwGetKey(window, GLFW_KEY_G)) {
+			player_collider.pos = player_pos;
+			for(int i=0; i<5; i++){
+				if(gjk(player_collider, box_collider[i])) 
+					box_colour[i] = vec4(0.8f, 0.7f, 0.0f, 1);
+				else 
+					box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
+			}
+		//}
 		//Rendering
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
