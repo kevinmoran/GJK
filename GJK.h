@@ -260,7 +260,7 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
         faces[num_faces+1][3] = normalise(cross(v2-p, v0-p));
         //Overwrite v0,v1,v2 with v0,v1,p
         faces[closest_face][2] = p;
-        faces[closest_face][3] = normalise(cross(v1-v0, p-v0));
+        faces[closest_face][3] = normalise(cross(v0-p, v1-p));
         num_faces+=2;
     }
     printf("EPA did not converge\n");
