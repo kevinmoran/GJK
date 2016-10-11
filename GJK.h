@@ -21,6 +21,7 @@ vec3 support(Collider shape, vec3 dir);
 bool gjk(Collider coll1, Collider coll2);
 void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir);
 bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir);
+vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2);
 
 struct Collider{
 	vec3 pos; //origin in world space
@@ -78,6 +79,9 @@ bool gjk(Collider coll1, Collider coll2){
         }
         else if(update_simplex4(a,b,c,d,i,search_dir)) {
                 //printf("GJK Collision. Iterations: %d\n", iterations);
+                vec3 mtv = EPA(a,b,c,d,coll1,coll2);
+                printf("Minimum translation vector:\n");
+                print(mtv);
                 return true;
         }
     }//endfor
@@ -191,32 +195,74 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
 //Expanding Polytope Algorithm
 //Find minimum translation vector to resolve collision
 #define EPA_TOLERANCE 0.0001
+#define EPA_MAX_NUM_FACES 32
 vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
-    //vec3 faces[16][2]; //point on face0, face0's normal, point on face1, etc.
+    vec3 faces[EPA_MAX_NUM_FACES][4]; //Array of faces, each with 3 verts and a normal
     
-    // faces[0][0] = a;
-    // faces[0][1] = normalise(cross(b-a, c-a)); //ABC
-    // faces[1][0] = a;
-    // faces[1][1] = normalise(cross(c-a, d-a)); //ACD
-    // faces[2][0] = a;
-    // faces[2][1] = normalise(cross(d-a, b-a)); //ADB
-    // faces[3][0] = b;
-    // faces[3][1] = normalise(cross(c-b, d-b)); //BCD
+    //Init with final simplex from GJK
+    faces[0][0] = a;
+    faces[0][1] = b;
+    faces[0][2] = c;
+    faces[0][3] = normalise(cross(b-a, c-a)); //ABC
+    faces[1][0] = a;
+    faces[1][1] = c;
+    faces[1][2] = d;
+    faces[1][3] = normalise(cross(c-a, d-a)); //ACD
+    faces[2][0] = a;
+    faces[2][1] = d;
+    faces[2][2] = b;
+    faces[2][3] = normalise(cross(d-a, b-a)); //ADB
+    faces[3][0] = b;
+    faces[3][1] = c;
+    faces[3][2] = d;
+    faces[3][3] = normalise(cross(c-b, d-b)); //BCD
 
-    // float min_dist = 99;
-    // int closest_face_index = -1;
-    // for(int i=0; i<4; i++){
-    //     float d = dot(faces[i][0], faces[i][1]);
-    //     if(d<min_dist){
-    //         min_dist = d;
-    //         closest_face_index = i;
-    //     }
-    // }
+    int num_faces=4;
+    vec3 p; //new point used to expand polytope
+    while(num_faces<EPA_MAX_NUM_FACES){
+        //Find face that's closest to origin
+        float min_dist = dot(faces[0][0], faces[0][3]);
+        int closest_face = 0;
+        for(int i=1; i<num_faces; i++){
+            float d = dot(faces[i][0], faces[i][3]);
+            if(d<min_dist){
+                min_dist = d;
+                closest_face = i;
+            }
+        }
+        //search normal to face that's closest to origin
+        vec3 search_dir = faces[closest_face][3]; 
+        p = support(coll1, search_dir) - support(coll2, -search_dir);
+        if(dot(p, search_dir)-min_dist<EPA_TOLERANCE){
+            //Convergence (new point is not significantly further from origin)
+            printf("EPA converged with %d faces\n", num_faces);
+            return p;
+        }
+        //Split face into 3 using new point:
+        //     v0                        v0
+        //                  ->           p
+        // v1      v2               v1       v2
+        
+        //New faces are v0,v1,p, p,v1,v2 and p,v2,v0 (remove old face v0,v1,v2)
+        vec3 v0 = faces[closest_face][0];
+        vec3 v1 = faces[closest_face][1];
+        vec3 v2 = faces[closest_face][2];
 
-    //Loop
-        //Whichever face is closest to origin,
-        //Search for support in direction of its normal
-        //If this vertex is not further from the origin (by some thresh) return
-        //Update simplex: Split face in two using new vertex
-    return vec3(0,0,0);
+        //Add face p,v1,v2
+        faces[num_faces][0] = p;
+        faces[num_faces][1] = v1;
+        faces[num_faces][2] = v2;
+        faces[num_faces][3] = normalise(cross(v1-p, v2-p));
+        //Add face p,v2,v0
+        faces[num_faces+1][0] = p;
+        faces[num_faces+1][1] = v2;
+        faces[num_faces+1][2] = v0;
+        faces[num_faces+1][3] = normalise(cross(v2-p, v0-p));
+        //Overwrite v0,v1,v2 with v0,v1,p
+        faces[closest_face][2] = p;
+        faces[closest_face][3] = normalise(cross(v1-v0, p-v0));
+        num_faces+=2;
+    }
+    printf("EPA did not converge\n");
+    return p;
 }
