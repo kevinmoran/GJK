@@ -249,7 +249,6 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
             return p;
         }
 
-<<<<<<< HEAD
         vec3 loose_edges[EPA_MAX_NUM_LOOSE_EDGES][2]; //keep track of edges we need to fix
         int num_loose_edges = 0;
 
@@ -302,22 +301,6 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
             faces[num_faces][3] = normalise(cross(loose_edges[i][0]-loose_edges[i][1], p-loose_edges[i][1]));
             num_faces++;
         }
-=======
-        //Add face p,v1,v2
-        faces[num_faces][0] = p;
-        faces[num_faces][1] = v1;
-        faces[num_faces][2] = v2;
-        faces[num_faces][3] = normalise(cross(v1-p, v2-p));
-        //Add face p,v2,v0
-        faces[num_faces+1][0] = p;
-        faces[num_faces+1][1] = v2;
-        faces[num_faces+1][2] = v0;
-        faces[num_faces+1][3] = normalise(cross(v2-p, v0-p));
-        //Overwrite v0,v1,v2 with v0,v1,p
-        faces[closest_face][2] = p;
-        faces[closest_face][3] = normalise(cross(v0-p, v1-p));
-        num_faces+=2;
->>>>>>> 4a93b28c0901f8ac8b5ba9366b5975a1bcc8b65c
     }
     printf("EPA did not converge\n");
     return p;
