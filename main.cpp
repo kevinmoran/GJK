@@ -151,10 +151,14 @@ int main() {
 		//if (glfwGetKey(window, GLFW_KEY_G)) {
 			player_collider.pos = player_pos;
 			for(int i=0; i<5; i++){
-				if(gjk(player_collider, box_collider[i])) 
+				vec3 mtv(0,0,0); //minimum translation vector
+				if(gjk(player_collider, box_collider[i], mtv)) 
 					box_colour[i] = vec4(0.8f, 0.7f, 0.0f, 1);
 				else 
 					box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
+				
+				player_pos += mtv;
+				player_M = translate(identity_mat4(), player_pos);
 			}
 		//}
 		//Rendering

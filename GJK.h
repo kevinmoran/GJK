@@ -1,4 +1,6 @@
 #pragma once
+#include <assert.h>
+#include "maths_funcs.h"
 
 //Kevin's implementation of the Gilbert-Johnson-Keerthi intersection algorithm
 //Most useful references (Huge thanks to all the authors):
@@ -15,10 +17,14 @@
 // Has nice diagrams to visualise the tetrahedral case
 // http://in2gpu.com/2014/05/18/gjk-algorithm-3d/
 
+// "GJK + Expanding Polytope Algorithm - Implementation and Visualization"
+// Good breakdown of EPA with demo for visualisation
+// https://www.youtube.com/watch?v=6rgiPrzqt9w
+
 struct Collider;
 
 vec3 support(Collider shape, vec3 dir);
-bool gjk(Collider coll1, Collider coll2);
+bool gjk(Collider coll1, Collider coll2, vec3 &mtv);
 void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir);
 bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir);
 vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2);
@@ -49,7 +55,7 @@ vec3 support(Collider shape, vec3 dir){
             + shape.pos);
 }
 
-bool gjk(Collider coll1, Collider coll2){
+bool gjk(Collider coll1, Collider coll2, vec3 &mtv){
     vec3 a, b, c, d; //Simplex: just a set of points (a is always most recently added)
     vec3 search_dir = coll1.pos - coll2.pos; //initial search direction between colliders
 
@@ -79,7 +85,7 @@ bool gjk(Collider coll1, Collider coll2){
         }
         else if(update_simplex4(a,b,c,d,i,search_dir)) {
                 //printf("GJK Collision. Iterations: %d\n", iterations);
-                vec3 mtv = EPA(a,b,c,d,coll1,coll2);
+                mtv = EPA(a,b,c,d,coll1,coll2);
                 printf("Minimum translation vector:\n");
                 print(mtv);
                 return true;
@@ -195,7 +201,8 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
 //Expanding Polytope Algorithm
 //Find minimum translation vector to resolve collision
 #define EPA_TOLERANCE 0.0001
-#define EPA_MAX_NUM_FACES 32
+#define EPA_MAX_NUM_FACES 128
+#define EPA_MAX_NUM_LOOSE_EDGES 256
 vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
     vec3 faces[EPA_MAX_NUM_FACES][4]; //Array of faces, each with 3 verts and a normal
     
@@ -219,14 +226,17 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
 
     int num_faces=4;
     vec3 p; //new point used to expand polytope
+    
     while(num_faces<EPA_MAX_NUM_FACES){
+        printf("EPA loop\n");
+        printf("num face: %d\n", num_faces);
         //Find face that's closest to origin
         float min_dist = dot(faces[0][0], faces[0][3]);
         int closest_face = 0;
         for(int i=1; i<num_faces; i++){
-            float d = dot(faces[i][0], faces[i][3]);
-            if(d<min_dist){
-                min_dist = d;
+            float dist = dot(faces[i][0], faces[i][3]);
+            if(dist<min_dist){
+                min_dist = dist;
                 closest_face = i;
             }
         }
@@ -238,30 +248,59 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
             printf("EPA converged with %d faces\n", num_faces);
             return p;
         }
-        //Split face into 3 using new point:
-        //     v0                        v0
-        //                  ->           p
-        // v1      v2               v1       v2
-        
-        //New faces are v0,v1,p, p,v1,v2 and p,v2,v0 (remove old face v0,v1,v2)
-        vec3 v0 = faces[closest_face][0];
-        vec3 v1 = faces[closest_face][1];
-        vec3 v2 = faces[closest_face][2];
 
-        //Add face p,v1,v2
-        faces[num_faces][0] = p;
-        faces[num_faces][1] = v1;
-        faces[num_faces][2] = v2;
-        faces[num_faces][3] = normalise(cross(v1-p, v2-p));
-        //Add face p,v2,v0
-        faces[num_faces+1][0] = p;
-        faces[num_faces+1][1] = v2;
-        faces[num_faces+1][2] = v0;
-        faces[num_faces+1][3] = normalise(cross(v2-p, v0-p));
-        //Overwrite v0,v1,v2 with v0,v1,p
-        faces[closest_face][2] = p;
-        faces[closest_face][3] = normalise(cross(v1-v0, p-v0));
-        num_faces+=2;
+        vec3 loose_edges[EPA_MAX_NUM_LOOSE_EDGES][2]; //keep track of edges we need to fix
+        int num_loose_edges = 0;
+
+        //Find all triangles that are facing p
+        for(int i=0; i<num_faces; i++){
+            if(dot(faces[i][3], p)>0){ //triangle i faces p, remove it
+                //Update list of loose edges
+                for(int j=0; j<3; j++){ //Three edges per face
+                    vec3 current_edge[2] = {faces[i][j], faces[i][(j+1)%3]};
+                    bool found_edge = false;
+                    for(int k=0; k<num_loose_edges; k++){ //Check if current edge is already in list
+                        if(loose_edges[k][1]==current_edge[0] && loose_edges[k][0]==current_edge[1]){
+                            //Edge is already in the list, remove it
+                            //THIS ASSUMES EDGE CAN ONLY BE SHARED BY 2 TRIANGLES (which should be true)
+                            //THIS ALSO ASSUMES SHARED EDGE WILL BE REVERSED IN THE TRIANGLES (which 
+                            //should be true provided every triangle is wound CCW)
+                            loose_edges[k][0] = loose_edges[num_loose_edges-1][0]; //Overwrite current edge
+                            loose_edges[k][1] = loose_edges[num_loose_edges-1][1]; //with last edge in list
+                            num_loose_edges--;
+                            found_edge = true;
+                            k=num_loose_edges; //exit loop because edge can only be shared once
+                        }
+                    }//endfor loose_edges
+
+                    if(!found_edge){ //add current edge to list
+                        assert(num_loose_edges<EPA_MAX_NUM_LOOSE_EDGES);
+                        loose_edges[num_loose_edges][0] = current_edge[0];
+                        loose_edges[num_loose_edges][1] = current_edge[1];
+                        num_loose_edges++;
+                    }
+                }
+
+                //Remove triangle i from list
+                faces[i][0] = faces[num_faces-1][0];
+                faces[i][1] = faces[num_faces-1][1];
+                faces[i][2] = faces[num_faces-1][2];
+                faces[i][3] = faces[num_faces-1][3];
+                num_faces--;
+                i--;
+            }//endif p can see triangle i
+        }//endfor num_faces
+
+        //Reconstruct polytope with p added
+        for(int i=0; i<num_loose_edges; i++){
+            assert(num_faces<EPA_MAX_NUM_FACES);
+            //TODO: verify that this maintains CCW winding
+            faces[num_faces][0] = loose_edges[i][0];
+            faces[num_faces][1] = loose_edges[i][1];
+            faces[num_faces][2] = p;
+            faces[num_faces][3] = normalise(cross(loose_edges[i][0]-loose_edges[i][1], p-loose_edges[i][1]));
+            num_faces++;
+        }
     }
     printf("EPA did not converge\n");
     return p;
