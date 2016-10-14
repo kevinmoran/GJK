@@ -49,30 +49,53 @@ vec3 support(Collider shape, vec3 dir){
             support_index = i;
         }
     }
-    return (shape.M*vec3(shape.points[support_index], 
-                shape.points[support_index+1], 
-                shape.points[support_index+2])
-            + shape.pos);
+    vec3 final = shape.M*vec3(shape.points[support_index], 
+                                shape.points[support_index+1], 
+                                shape.points[support_index+2]) + shape.pos;
+    //printf("Support: ");
+    //print(final);
+    return final;
 }
 
 bool gjk(Collider coll1, Collider coll2, vec3 &mtv){
     vec3 a, b, c, d; //Simplex: just a set of points (a is always most recently added)
     vec3 search_dir = coll1.pos - coll2.pos; //initial search direction between colliders
+    
+    printf("Search direction: ");
+    print(search_dir);
 
     //Get initial point for simplex
     c = support(coll1, search_dir) - support(coll2, -search_dir);
+    printf("First simplex point c: ");
+    print(c);
+
     search_dir = -c; //search in direction of origin
+
+    printf("Search direction: ");
+    print(search_dir);
 
     //Get second point for a line segment simplex
     b = support(coll1, search_dir) - support(coll2, -search_dir);
+    printf("Second simplex point b: ");
+    print(b);
     if(dot(b, search_dir)<0) {
         //printf("GJK No collision (search didn't reach origin). Exited before loop\n");
         return false; //we didn't reach the origin, won't enclose it
     }
+
     search_dir = cross(cross(c-b,-b),c-b); //search normal to line segment towards origin
+    if(search_dir==vec3(0,0,0)){
+        //origin is on this line segment
+        //Apparently any normal search vector will do?
+        search_dir = cross(c-b, vec3(1,0,0)); //normal with x-axis
+        if(search_dir==vec3(0,0,0)) search_dir = cross(c-b, vec3(0,0,-1)); //normal with z-axis
+    }
     int i = 2; //simplex dimension
     
     for(int iterations=0; iterations<64; iterations++){
+        printf("Search direction: ");
+        print(search_dir);
+
         a = support(coll1, search_dir) - support(coll2, -search_dir);
         if(dot(a, search_dir)<0) {
             //printf("GJK No collision (search didn't reach origin). Iterations: %d\n", iterations);
@@ -223,27 +246,39 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
     faces[3][1] = c;
     faces[3][2] = d;
     faces[3][3] = normalise(cross(c-b, d-b)); //BCD
+    printf("\nStarted EPA\n");
+    printf("a: ");
+    print(a);
+    printf("b: ");
+    print(b);
+    printf("c: ");
+    print(c);
+    printf("d: ");
+    print(d);
 
     int num_faces=4;
     vec3 p; //new point used to expand polytope
     
     while(num_faces<EPA_MAX_NUM_FACES){
-        printf("EPA loop\n");
-        printf("num face: %d\n", num_faces);
         //Find face that's closest to origin
-        float min_dist = dot(faces[0][0], faces[0][3]);
+        float min_dist = fabs(dot(faces[0][0], faces[0][3]));
         int closest_face = 0;
         for(int i=1; i<num_faces; i++){
-            float dist = dot(faces[i][0], faces[i][3]);
+            float dist = fabs(dot(faces[i][0], faces[i][3]));
             if(dist<min_dist){
                 min_dist = dist;
                 closest_face = i;
             }
         }
+        printf("min dist: %f\n", min_dist);
+
         //search normal to face that's closest to origin
         vec3 search_dir = faces[closest_face][3]; 
         p = support(coll1, search_dir) - support(coll2, -search_dir);
-        if(dot(p, search_dir)-min_dist<EPA_TOLERANCE){
+        printf("New point: ");
+        print(p);
+
+        if(fabs(dot(p, search_dir))-min_dist<EPA_TOLERANCE){
             //Convergence (new point is not significantly further from origin)
             printf("EPA converged with %d faces\n", num_faces);
             return p;
