@@ -334,7 +334,7 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
             faces[num_faces][0] = loose_edges[i][0];
             faces[num_faces][1] = loose_edges[i][1];
             faces[num_faces][2] = p;
-            faces[num_faces][3] = normalise(cross(loose_edges[i][0]-loose_edges[i][1], p-loose_edges[i][1]));
+            faces[num_faces][3] = normalise(cross(loose_edges[i][0]-loose_edges[i][1], loose_edges[i][0]-p));
             num_faces++;
         }
     }
