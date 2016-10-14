@@ -225,7 +225,7 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
 //Find minimum translation vector to resolve collision
 #define EPA_TOLERANCE 0.0001
 #define EPA_MAX_NUM_FACES 128
-#define EPA_MAX_NUM_LOOSE_EDGES 256
+#define EPA_MAX_NUM_LOOSE_EDGES 64
 vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
     vec3 faces[EPA_MAX_NUM_FACES][4]; //Array of faces, each with 3 verts and a normal
     
@@ -261,10 +261,11 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
     
     while(num_faces<EPA_MAX_NUM_FACES){
         //Find face that's closest to origin
-        float min_dist = fabs(dot(faces[0][0], faces[0][3]));
+        float min_dist = dot(faces[0][0], faces[0][3]);
         int closest_face = 0;
         for(int i=1; i<num_faces; i++){
-            float dist = fabs(dot(faces[i][0], faces[i][3]));
+            float dist = dot(faces[i][0], faces[i][3]);
+            assert(dist>=0);
             if(dist<min_dist){
                 min_dist = dist;
                 closest_face = i;
@@ -278,7 +279,7 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
         printf("New point: ");
         print(p);
 
-        if(fabs(dot(p, search_dir))-min_dist<EPA_TOLERANCE){
+        if(dot(p, search_dir)-min_dist<EPA_TOLERANCE){
             //Convergence (new point is not significantly further from origin)
             printf("EPA converged with %d faces\n", num_faces);
             return p;
