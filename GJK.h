@@ -275,6 +275,9 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
 
         //search normal to face that's closest to origin
         vec3 search_dir = faces[closest_face][3]; 
+        printf("Search dir: :");
+        print(search_dir);
+        
         p = support(coll1, search_dir) - support(coll2, -search_dir);
         printf("New point: ");
         print(p);
