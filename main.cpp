@@ -18,7 +18,7 @@ int main() {
 	if (!init_gl(window, gl_width, gl_height)){ return 1; }
 	float* vp = NULL;
 	int point_count = 0;
-	load_obj("cube.obj", vp, point_count);
+	load_obj("cube.obj", &vp, &point_count);
 
 	//Collision mesh for GJK
 	float box_points[] = {
