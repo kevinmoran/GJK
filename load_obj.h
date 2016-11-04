@@ -51,7 +51,7 @@ bool load_obj(const char* file_name, float** points, int* point_count){
 	*point_count = 3*num_faces;
 	float* vp_unsorted = (float*)malloc(num_vps*3*sizeof(float)); //temp
 	*points = (float*)malloc(*point_count*3*sizeof(float));
-	printf("Allocated %u bytes for obj\n", (unsigned int)(*point_count)*3*sizeof(float));
+	printf("Allocated %u bytes for obj\n", (unsigned int)((*point_count)*3*sizeof(float)));
 
 	//Iterators
 	int vp_index = 0; //for unsorted points

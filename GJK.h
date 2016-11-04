@@ -224,8 +224,8 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
 //Expanding Polytope Algorithm
 //Find minimum translation vector to resolve collision
 #define EPA_TOLERANCE 0.0001
-#define EPA_MAX_NUM_FACES 64
-#define EPA_MAX_NUM_LOOSE_EDGES 32
+#define EPA_MAX_NUM_FACES 256
+#define EPA_MAX_NUM_LOOSE_EDGES 128
 vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
     vec3 faces[EPA_MAX_NUM_FACES][4]; //Array of faces, each with 3 verts and a normal
     

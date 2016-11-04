@@ -58,7 +58,7 @@ int main() {
 	box_M[4] = translate(identity_mat4(), vec3(1.5f, 0, 1.5f));
 	vec4 box_colour[5];
 
-	vec3 player_pos = vec3(0.5f+0.9f, 0.5f, 0.5f);
+	vec3 player_pos = vec3(0.5f-0.58f, 0.5f, 0.5f+0.86f);
 	mat4 player_M = translate(identity_mat4(), player_pos);
 	vec4 player_colour = vec4(0.1f, 0.8f, 0.3f, 1.0f);
 	float player_speed = 10;
