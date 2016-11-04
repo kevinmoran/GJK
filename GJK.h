@@ -243,8 +243,8 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
     faces[2][2] = b;
     faces[2][3] = normalise(cross(d-a, b-a)); //ADB
     faces[3][0] = b;
-    faces[3][1] = c;
-    faces[3][2] = d;
+    faces[3][1] = d;
+    faces[3][2] = c;
     faces[3][3] = normalise(cross(d-b, c-b)); //BDC
     // printf("\nStarted EPA\n");
     // printf("a: ");
