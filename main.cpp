@@ -46,9 +46,9 @@ int main() {
 	free(vp);
 
 	//Load shader
-	Shader box_shader("MVP.vert", "uniform_colour.frag");
-	GLuint colour_loc = glGetUniformLocation(box_shader.prog_id, "colour");
-	glUseProgram(box_shader.prog_id);
+	Shader box_shader = load_shader("MVP.vert", "uniform_colour.frag");
+	GLuint colour_loc = glGetUniformLocation(box_shader.id, "colour");
+	glUseProgram(box_shader.id);
 
 	mat4 box_M[5];
 	box_M[0] = translate(identity_mat4(), vec3(0.5f, 0.5f, 0.5f));//translate(rotate_y_deg(identity_mat4(), 45), vec3(-1.5f, 0, -1.5f));
@@ -164,7 +164,7 @@ int main() {
 		//Rendering
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glUseProgram(box_shader.prog_id);
+		glUseProgram(box_shader.id);
 		glBindVertexArray(vao);
 		glUniformMatrix4fv(box_shader.V_loc, 1, GL_FALSE, fly_cam.V.m);
 		for(int i=0; i<1; i++){
