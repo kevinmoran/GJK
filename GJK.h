@@ -65,7 +65,7 @@ bool gjk(Collider coll1, Collider coll2, vec3 &mtv){
     // print(search_dir);
 
     //Get initial point for simplex
-    c = support(coll1, search_dir) - support(coll2, -search_dir);
+    c = support(coll2, search_dir) - support(coll1, -search_dir);
     // printf("First simplex point c: ");
     // print(c);
 
@@ -75,7 +75,7 @@ bool gjk(Collider coll1, Collider coll2, vec3 &mtv){
     // print(search_dir);
 
     //Get second point for a line segment simplex
-    b = support(coll1, search_dir) - support(coll2, -search_dir);
+    b = support(coll2, search_dir) - support(coll1, -search_dir);
     // printf("Second simplex point b: ");
     // print(b);
     if(dot(b, search_dir)<0) {
@@ -96,7 +96,7 @@ bool gjk(Collider coll1, Collider coll2, vec3 &mtv){
         //printf("Search direction: ");
         // print(search_dir);
 
-        a = support(coll1, search_dir) - support(coll2, -search_dir);
+        a = support(coll2, search_dir) - support(coll1, -search_dir);
         if(dot(a, search_dir)<0) {
             //printf("GJK No collision (search didn't reach origin). Iterations: %d\n", iterations);
             return false; //we didn't reach the origin, won't enclose it
@@ -277,13 +277,14 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
         // printf("Search dir: :");
         // print(search_dir);
         
-        p = support(coll1, search_dir) - support(coll2, -search_dir);
+        p = support(coll2, search_dir) - support(coll1, -search_dir);
         // printf("New point: ");
         // print(p);
 
         if(dot(p, search_dir)-min_dist<EPA_TOLERANCE){
             //Convergence (new point is not significantly further from origin)
             printf("EPA converged with %d faces\n", num_faces);
+            return faces[closest_face][3]*dot(p, search_dir);
             return p;
         }
 
