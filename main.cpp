@@ -17,7 +17,7 @@ float gl_aspect_ratio = (float)gl_width/gl_height;
 #include "GJK.h"
 
 int main() {
-	if (!init_gl(window, gl_width, gl_height)){ return 1; }
+	if (!init_gl(window, "GJK", gl_width, gl_height)){ return 1; }
 	float* vp = NULL;
 	unsigned int point_count = 0;
 	load_obj("cube.obj", &vp, &point_count);
@@ -60,7 +60,7 @@ int main() {
 	box_M[4] = translate(identity_mat4(), vec3(1.5f, 0, 1.5f));
 	vec4 box_colour[5];
 
-	vec3 player_pos = vec3(0.5f-0.58f, 0.5f, 0.5f+0.86f);
+	vec3 player_pos = vec3(0,0,2.5f);
 	mat4 player_M = translate(identity_mat4(), player_pos);
 	vec4 player_colour = vec4(0.1f, 0.8f, 0.3f, 1.0f);
 	float player_speed = 10;
@@ -87,7 +87,7 @@ int main() {
 	player_collider.M_inverse = identity_mat4();
 
 	//Camera setup
-	g_camera.init(vec3(2,3,6));
+	g_camera.init(vec3(0,3,6), vec3(0,0,0));
 
 	glUniformMatrix4fv(box_shader.V_loc, 1, GL_FALSE, g_camera.V.m);
 	glUniformMatrix4fv(box_shader.P_loc, 1, GL_FALSE, g_camera.P.m);
