@@ -94,16 +94,16 @@ bool load_obj(const char* file_name, float** vp, uint32_t* vert_count){
 		else if(line[0]=='f'){
 			uint16_t indices[3];
 			//Scan the line depending on what parameters are included for faces
-			if(num_vts==0 && num_vns==0){ //Just vertex vp
+			if(num_vts==0 && num_vns==0){ //Just vertex positions
 				sscanf(line, "f %hu %hu %hu", &indices[0], &indices[1], &indices[2]);
 			}
-			else if(num_vts==0){ //vertex vp and vn
+			else if(num_vts==0){ //vertex positions and normals
 				sscanf(line, "f %hu//%*u %hu//%*u %hu//%*u", &indices[0], &indices[1], &indices[2]);
 			}
-			else if(num_vns==0){ //vertex vp and tex coords
+			else if(num_vns==0){ //vertex positions and tex coords
 				sscanf(line, "f %hu/%*u %hu/%*u %hu/%*u", &indices[0], &indices[1], &indices[2]);
 			}
-			else{ //vertex vp and tex coords and vn
+			else{ //vertex positions and tex coords and normals
 				sscanf(line, "f %hu/%*u/%*u %hu/%*u/%*u %hu/%*u/%*u", &indices[0], &indices[1], &indices[2]);
 			}
 			for(int i=0; i<3; ++i){
@@ -198,7 +198,7 @@ bool load_obj(const char* file_name, float** vp, float** vt, float** vn, uint32_
 		else if(line[0]=='f'){
 			uint16_t indices[3];
 			//Scan the line depending on what parameters are included for faces
-			if(num_vts==0 && num_vns==0){ //Just vertex vp
+			if(num_vts==0 && num_vns==0){ //Just vertex positions
 				sscanf(line, "f %hu %hu %hu", &indices[0], &indices[1], &indices[2]);
 				for(int i=0; i<3; i++){
 					indices[i]-=1; //wavefront obj doesn't use zero indexing
@@ -208,7 +208,7 @@ bool load_obj(const char* file_name, float** vp, float** vt, float** vn, uint32_
 					vp_it+=1;
 				}
 			}
-			else if(num_vts==0){ //vertex vp and vn
+			else if(num_vts==0){ //vertex positions and normals
 				uint16_t vn_index[3];
 				sscanf(line, "f %hu//%hu %hu//%hu %hu//%hu", &indices[0], &vn_index[0], &indices[1], &vn_index[1], &indices[2], &vn_index[2]);
 				for(int i=0; i<3; i++){
@@ -224,7 +224,7 @@ bool load_obj(const char* file_name, float** vp, float** vt, float** vn, uint32_
 					vn_it+=1;
 				}
 			}
-			else if(num_vns==0){ //vertex vp and tex coords
+			else if(num_vns==0){ //vertex positions and tex coords
 				uint16_t vt_index[3];
 				sscanf(line, "f %hu/%hu %hu/%hu %hu/%hu", &indices[0], &vt_index[0], &indices[1], &vt_index[1], &indices[2], &vt_index[2]);
 				for(int i=0; i<3; i++){
@@ -239,7 +239,7 @@ bool load_obj(const char* file_name, float** vp, float** vt, float** vn, uint32_
 					vt_it+=1;
 				}
 			}
-			else{ //vertex vp and tex coords and vn
+			else{ //vertex positions and tex coords and normals
 				uint16_t vt_index[3], vn_index[3];
 				sscanf(line, "f %hu/%hu/%hu %hu/%hu/%hu %hu/%hu/%hu", &indices[0], &vt_index[0], &vn_index[0], 
 															          &indices[1], &vt_index[1], &vn_index[1], 
@@ -331,16 +331,16 @@ bool load_obj_indexed(const char* file_name, float** vp, uint16_t** indices, uin
 		}
 		else if(line[0]=='f'){
 			//Scan the line depending on what parameters are included for faces
-			if(num_vts==0 && num_vns==0){ //Just vertex vp
+			if(num_vts==0 && num_vns==0){ //Just vertex positions
 				sscanf(line, "f %hu %hu %hu",  &(*indices)[index_it], &(*indices)[index_it+1], &(*indices)[index_it+2]);
 			}
-			else if(num_vts==0){ //vertex vp and vn
+			else if(num_vts==0){ //vertex positions and normals
 				sscanf(line, "f %hu//%*u %hu//%*u %hu//%*u", &(*indices)[index_it], &(*indices)[index_it+1], &(*indices)[index_it+2]);
 			}
-			else if(num_vns==0){ //vertex vp and tex coords
+			else if(num_vns==0){ //vertex positions and tex coords
 				sscanf(line, "f %hu/%*u %hu/%*u %hu/%*u", &(*indices)[index_it], &(*indices)[index_it+1], &(*indices)[index_it+2]);
 			}
-			else{ //vertex vp and tex coords and vn
+			else{ //vertex positions and tex coords and normals
 				sscanf(line, "f %hu/%*u/%*u %hu/%*u/%*u %hu/%*u/%*u", &(*indices)[index_it], &(*indices)[index_it+1], &(*indices)[index_it+2]);
 			}
 			for(int i=0; i<3; i++){
@@ -433,7 +433,7 @@ bool load_obj_indexed(const char* file_name, float** vp, float** vt, float** vn,
 
 		else if(line[0]=='f'){
 			//Scan the line depending on what parameters are included for faces
-			if(num_vts==0 && num_vns==0){ //Just vp
+			if(num_vts==0 && num_vns==0){ //Just vertex positions
 				sscanf(line, "f %hu %hu %hu", &(*indices)[index_it], &(*indices)[index_it+1], &(*indices)[index_it+2]);
 
 				for(int i=0; i<3; i++){
@@ -446,7 +446,7 @@ bool load_obj_indexed(const char* file_name, float** vp, float** vt, float** vn,
 				index_it+=3;
 			}
 
-			else if(num_vts==0){ //vp and vn
+			else if(num_vts==0){ //positions and normals
 				uint16_t index[3], vn_index[3];
 				sscanf(line, "f %hu//%hu %hu//%hu %hu//%hu", &index[0], &vn_index[0], &index[1], &vn_index[1],  &index[2], &vn_index[2]);
 
@@ -514,9 +514,9 @@ bool load_obj_indexed(const char* file_name, float** vp, float** vt, float** vn,
 					} //end else (i.e. !smooth_normals
 				}//end for i
 				if(smooth_normals) index_it+=3;
-			}
+			}//end if num_vts
 
-			else if(num_vns==0){ //vp and vt
+			else if(num_vns==0){ //positions and tex coords
 				uint16_t index[3], vt_index[3];
 				sscanf(line, "f %hu/%hu %hu/%hu %hu/%hu", &index[0], &vt_index[0], &index[1], &vt_index[1],  &index[2], &vt_index[2]);
 
@@ -564,7 +564,7 @@ bool load_obj_indexed(const char* file_name, float** vp, float** vt, float** vn,
 				}//end for i
 			}//end if num_vns
 
-			else{ //vp, vt and vn
+			else{ //positions, tex coords and normals
 				uint16_t index[3], vt_index[3], vn_index[3];
 				sscanf(line, "f %hu/%hu/%hu %hu/%hu/%hu %hu/%hu/%hu",	&index[0], &vt_index[0], &vn_index[0], 
 																&index[1], &vt_index[1], &vn_index[1], 
@@ -625,7 +625,7 @@ bool load_obj_indexed(const char* file_name, float** vp, float** vt, float** vn,
 					}
 					index_it+=1;
 				}//end for i
-			}//end else{ //vp, vt and vn
+			}//end else{ //positions, tex coords and normals
 
 		}//end if line[0]=='f'
 	}//end while
