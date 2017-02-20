@@ -22,6 +22,19 @@ int main() {
 	unsigned int point_count = 0;
 	load_obj("cube.obj", &vp, &point_count);
 
+	GLuint vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+	
+	GLuint points_vbo;
+	glGenBuffers(1, &points_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
+	glBufferData(GL_ARRAY_BUFFER, point_count*3*sizeof(float), vp, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(VP_ATTRIB_LOC);
+	glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
+	glVertexAttribPointer(VP_ATTRIB_LOC, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+	free(vp);
+
 	//Collision mesh for GJK
 	float box_points[] = {
 		-0.5f, -0.5f, -0.5f,
@@ -34,24 +47,6 @@ int main() {
 		0.5f, 0.5f, 0.5f
 	};
 
-	GLuint vao;
-	GLuint points_vbo;
-	glGenBuffers(1, &points_vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
-	glBufferData(GL_ARRAY_BUFFER, point_count*3*sizeof(float), vp, GL_STATIC_DRAW);
-
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-	free(vp);
-
-	//Load shader
-	Shader box_shader = init_shader("MVP.vert", "uniform_colour.frag");
-	GLuint colour_loc = glGetUniformLocation(box_shader.id, "colour");
-	glUseProgram(box_shader.id);
-
 	mat4 box_M[5];
 	box_M[0] = translate(rotate_y_deg(identity_mat4(), 45), vec3(-1.5f, 0, -1.5f));
 	box_M[1] = translate(identity_mat4(), vec3(-1.5f, 0, 1.5f));
@@ -59,11 +54,6 @@ int main() {
 	box_M[3] = translate(identity_mat4(), vec3(1.5f, 0, -1.5f));
 	box_M[4] = translate(identity_mat4(), vec3(1.5f, 0, 1.5f));
 	vec4 box_colour[5];
-
-	vec3 player_pos = vec3(0,0,2.5f);
-	mat4 player_M = translate(identity_mat4(), player_pos);
-	vec4 player_colour = vec4(0.1f, 0.8f, 0.3f, 1.0f);
-	float player_speed = 10;
 
 	Collider box_collider[5];
 	box_collider[0].pos = vec3(-1.5f, 0, -1.5f);
@@ -79,6 +69,11 @@ int main() {
 		box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
 	}
 
+	vec3 player_pos = vec3(0,0,2.5f); //vec3(-1.0f,0,-1.5f); //this is a broken case, fix!
+	mat4 player_M = translate(identity_mat4(), player_pos);
+	vec4 player_colour = vec4(0.1f, 0.8f, 0.3f, 1.0f);
+	float player_speed = 10;
+
 	Collider player_collider;
 	player_collider.pos = player_pos;
 	player_collider.points = box_points;
@@ -89,6 +84,10 @@ int main() {
 	//Camera setup
 	g_camera.init(vec3(0,3,6), vec3(0,0,0));
 
+	//Load shader
+	Shader box_shader = init_shader("MVP.vert", "uniform_colour.frag");
+	GLuint colour_loc = glGetUniformLocation(box_shader.id, "colour");
+	glUseProgram(box_shader.id);
 	glUniformMatrix4fv(box_shader.V_loc, 1, GL_FALSE, g_camera.V.m);
 	glUniformMatrix4fv(box_shader.P_loc, 1, GL_FALSE, g_camera.P.m);
 
