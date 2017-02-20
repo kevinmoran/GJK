@@ -23,9 +23,9 @@
 struct Collider;
 
 vec3 support(Collider shape, vec3 dir);
-bool gjk(Collider coll1, Collider coll2, vec3 &mtv);
-void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir);
-bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir);
+bool gjk(Collider coll1, Collider coll2, vec3* mtv);
+void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &simp_dim, vec3 &search_dir);
+bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &simp_dim, vec3 &search_dir);
 vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2);
 
 struct Collider{
@@ -56,7 +56,7 @@ vec3 support(Collider shape, vec3 dir){
     return final;
 }
 
-bool gjk(Collider coll1, Collider coll2, vec3 &mtv){
+bool gjk(Collider coll1, Collider coll2, vec3* mtv){
     vec3 a, b, c, d; //Simplex: just a set of points (a is always most recently added)
     vec3 search_dir = coll1.pos - coll2.pos; //initial search direction between colliders
     
@@ -89,7 +89,7 @@ bool gjk(Collider coll1, Collider coll2, vec3 &mtv){
         search_dir = cross(c-b, vec3(1,0,0)); //normal with x-axis
         if(search_dir==vec3(0,0,0)) search_dir = cross(c-b, vec3(0,0,-1)); //normal with z-axis
     }
-    int i = 2; //simplex dimension
+    int simp_dim = 2; //simplex dimension
     
     for(int iterations=0; iterations<64; iterations++){
         //printf("Search direction: ");
@@ -100,17 +100,17 @@ bool gjk(Collider coll1, Collider coll2, vec3 &mtv){
             //printf("GJK No collision (search didn't reach origin). Iterations: %d\n", iterations);
             return false; //we didn't reach the origin, won't enclose it
         }
-        i++;
+        simp_dim++;
 
-        if(i==3){
-            update_simplex3(a,b,c,d,i,search_dir);
+        if(simp_dim==3){
+            update_simplex3(a,b,c,d,simp_dim,search_dir);
         }
-        else if(update_simplex4(a,b,c,d,i,search_dir)) {
-                //printf("GJK Collision. Iterations: %d\n", iterations);
-                mtv = EPA(a,b,c,d,coll1,coll2);
-                printf("Minimum translation vector:\n");
-                print(mtv);
-                return true;
+        else if(update_simplex4(a,b,c,d,simp_dim,search_dir)) {
+            //printf("GJK Collision. Iterations: %d\n", iterations);
+            *mtv = EPA(a,b,c,d,coll1,coll2);
+            printf("Minimum translation vector:\n");
+            print(*mtv);
+            return true;
         }
     }//endfor
     //printf("GJK No collision. Ran out of iterations\n");
@@ -118,7 +118,7 @@ bool gjk(Collider coll1, Collider coll2, vec3 &mtv){
 }
 
 //Triangle case
-void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir){
+void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &simp_dim, vec3 &search_dir){
     /* Required winding order:
     //  b
     //  | \
@@ -133,29 +133,29 @@ void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
 
     //Determine which facet is closest to origin, make that new simplex
 
-    i = 2; //hoisting this just cause
+    simp_dim = 2; //hoisting this just cause
     //Closest to edge AB
     if(dot(cross(b-a, n), AO)>0){
         c = a;
-        //i = 2;
+        //simp_dim = 2;
         search_dir = cross(cross(b-a, AO), b-a);
         return;
     }
     //Closest to edge AC
     if(dot(cross(n, c-a), AO)>0){
         b = a;
-        //i = 2;
+        //simp_dim = 2;
         search_dir = cross(cross(c-a, AO), c-a);
         return;
     }
     
-    i = 3; //hoisting this just cause
+    simp_dim = 3; //hoisting this just cause
     //Above triangle
     if(dot(n, AO)>0){
         d = c;
         c = b;
         b = a;
-        //i = 3;
+        //simp_dim = 3;
         search_dir = n;
         return;
     }
@@ -163,13 +163,13 @@ void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
     //Below triangle
     d = b;
     b = a;
-    //i = 3;
+    //simp_dim = 3;
     search_dir = -n;
     return;
 }
 
 //Tetrahedral case
-bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_dir){
+bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &simp_dim, vec3 &search_dir){
     // a is peak/tip of pyramid, BCD is the base (counterclockwise winding order)
 	//We know a priori that origin is above BCD and below a
 
@@ -179,26 +179,30 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
     vec3 ADB = cross(d-a, b-a);
 
     vec3 AO = -a; //dir to origin
-    i = 3; //hoisting this just cause
+    simp_dim = 3; //hoisting this just cause
 
     //Plane-test origin with 3 faces
-    //TODO: Not sure what to do with search direction here, or
-    //whether to call update_simplex3...
-    //Makes no difference for AABBS, test with more complex colliders!!!
+    /*
+    // Note: Kind of primitive approach used here; If origin is in front of a face, just use it as the new 
+    // simplex. I figured we should use its normal as the new search direction, but this behaves weirdly, needs investigation.
+    // We just go through the faces sequentially and exit at the first one which satisfies dot product. Not sure this is optimal or 
+    // if the edges or vertices should be considered as possible simplices? Thinking this through in my head I feel like this 
+    //method is good enough. Makes no difference for AABBS, should test with more complex colliders.
+    */
     if(dot(ABC, AO)>0){
     	//In front of ABC
     	d = c;
     	c = b;
     	b = a;
         //search_dir = ABC;
-        //update_simplex3(a,b,c,d,i,search_dir);
+        //update_simplex3(a,b,c,d,simp_dim,search_dir);
     	return false;
     }
     if(dot(ACD, AO)>0){
     	//In front of ACD
     	b = a;
         //search_dir = ABC;
-        //update_simplex3(a,b,c,d,i,search_dir);
+        //update_simplex3(a,b,c,d,simp_dim,search_dir);
     	return false;
     }
     if(dot(ADB, AO)>0){
@@ -207,7 +211,7 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &i, vec3 &search_di
     	d = b;
     	b = a;
         //search_dir = ABC;
-        //update_simplex3(a,b,c,d,i,search_dir);
+        //update_simplex3(a,b,c,d,simp_dim,search_dir);
     	return false;
     }
 
@@ -283,8 +287,7 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
         if(dot(p, search_dir)-min_dist<EPA_TOLERANCE){
             //Convergence (new point is not significantly further from origin)
             printf("EPA converged with %d faces\n", num_faces);
-            return faces[closest_face][3]*dot(p, search_dir);
-            return p;
+            return faces[closest_face][3]*dot(p, search_dir); //dot vertex with normal to resolve collision along normal!
         }
 
         vec3 loose_edges[EPA_MAX_NUM_LOOSE_EDGES][2]; //keep track of edges we need to fix
@@ -328,7 +331,8 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
                 i--;
             }//endif p can see triangle i
         }//endfor num_faces
-
+        printf("Num loose edges: %d\n", num_loose_edges);
+        
         //Reconstruct polytope with p added
         for(int i=0; i<num_loose_edges; i++){
             assert(num_faces<EPA_MAX_NUM_FACES);
