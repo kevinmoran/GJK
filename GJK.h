@@ -32,12 +32,12 @@ struct Collider{
 	vec3 pos; //origin in world space
 	float *points; //array of verts (x0 y0 z0 x1 y1 z1 etc)
 	int num_points; //num vertices 
-    mat3 M;         //rotation/scale component of model matrix
-	mat3 M_inverse; 
+    mat3 matRS;         //rotation/scale component of model matrix
+	mat3 matRS_inverse; 
 };
 
 vec3 support(Collider shape, vec3 dir){
-    dir = shape.M_inverse*dir; //transform dir by shape's inverse rotation matrix
+    dir = shape.matRS_inverse*dir; //transform dir by shape's inverse rotation matrix
     float max_dot = -99;
     int support_index = 0;
     for(int i=0; i<shape.num_points*3; i+=3){
@@ -48,9 +48,10 @@ vec3 support(Collider shape, vec3 dir){
             support_index = i;
         }
     }
-    vec3 final = shape.M*vec3(shape.points[support_index], 
-                                shape.points[support_index+1], 
-                                shape.points[support_index+2]) + shape.pos;
+    vec3 final = shape.matRS*vec3(shape.points[support_index], 
+                              shape.points[support_index+1], 
+                              shape.points[support_index+2]) 
+                + shape.pos;
     //printf("Support: ");
     //print(final);
     return final;

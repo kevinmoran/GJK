@@ -64,8 +64,8 @@ int main() {
 	for(int i=0; i<5; i++){
 		box_collider[i].points = box_points;
 		box_collider[i].num_points = 8;
-		box_collider[i].M = box_M[i];
-		box_collider[i].M_inverse = inverse(box_M[i]);
+		box_collider[i].matRS = box_M[i];
+		box_collider[i].matRS_inverse = inverse(box_M[i]);
 		box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
 	}
 
@@ -78,8 +78,8 @@ int main() {
 	player_collider.pos = player_pos;
 	player_collider.points = box_points;
 	player_collider.num_points = 8;
-	player_collider.M = identity_mat4();
-	player_collider.M_inverse = identity_mat4();
+	player_collider.matRS = identity_mat4();
+	player_collider.matRS_inverse = identity_mat4();
 
 	//Camera setup
 	g_camera.init(vec3(0,3,6), vec3(0,0,0));
@@ -98,6 +98,8 @@ int main() {
 	//-------------------------------------MAIN LOOP---------------------------------------//
 	//-------------------------------------------------------------------------------------//
 	while (!glfwWindowShouldClose(window)) {
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		//Get dt
 		prev_time = curr_time;
 		curr_time = glfwGetTime();
@@ -117,17 +119,16 @@ int main() {
 		glfwPollEvents();
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, 1);
-			continue;
 		}
+
 		static bool camera_enabled = false;
 		static bool F_was_pressed = false;
 		if (glfwGetKey(window, GLFW_KEY_F)) {
-			if(!F_was_pressed) {
-				camera_enabled = !camera_enabled;
-				F_was_pressed = true;
-			}
+			if(!F_was_pressed) { camera_enabled = !camera_enabled; }
+			F_was_pressed = true;
 		}
 		else F_was_pressed = false;
+
 		if(camera_enabled) g_camera.update(dt);
 		else{
 			//Move player
@@ -163,9 +164,8 @@ int main() {
 				player_M = translate(identity_mat4(), player_pos);
 			}
 		//}
-		//Rendering
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		//Rendering
 		glUseProgram(box_shader.id);
 		glBindVertexArray(vao);
 		glUniformMatrix4fv(box_shader.V_loc, 1, GL_FALSE, g_camera.V.m);
