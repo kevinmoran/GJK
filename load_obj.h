@@ -1,21 +1,49 @@
+#pragma once
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
+//****************************************
 //Kevin's wavefront obj loading functions
+//****************************************
 
-//unindexed
-bool load_obj(const char* file_name, float** points, int* point_count);
-bool load_obj(const char* file_name, float** points, float** tex_coords, float** normals, int* point_count);
-//indexed
-bool load_obj_indexed(const char* file_name, float** points, unsigned short** indices, 
-					int* point_count, int* vert_count);
-bool load_obj_indexed(const char* file_name, float** points, float** tex_coords, float** normals, 
-					unsigned short** indices, int* point_count, int* vert_count);
+//----------------------------------------------------------------------------------------------------------------------
+//Load unindexed meshes (with/without UVs and normals)
+bool load_obj(const char* 	file_name, 
+			  float** 	  	vp, 
+			  uint32_t*   	vert_count
+			  );
+bool load_obj(const char* 	file_name, 
+			  float** 		vp, 
+			  float** 		vt, 
+			  float** 		vn, 
+			  uint32_t* 	vert_count
+			  );
 
-//-------------------------------------------------------------------------------------------------------------
+//Load indexed meshes (with/without UVs and normals)
+bool load_obj_indexed(const char* 	file_name, 
+					  float** 		vp, 
+					  uint16_t** 	indices, 
+					  uint32_t* 	vert_count, 
+					  uint32_t* 	index_count
+					  );
+bool load_obj_indexed(const char* 	file_name, 
+					  float** 		vp, 
+					  float** 		vt, 
+					  float** 		vn, 
+					  uint16_t** 	indices, 
+					  uint32_t* 	vert_count, 
+					  uint32_t* 	index_count, 
+					  bool 			smooth_normals=true); // If smooth_normals is true, normals will be averaged for verts, 
+					  									  // which uses less memory but may look bad for sharp edges
+														  // If it's false, vertices with the same pos/UV but a different 
+														  // normal will be duplicated, making the indexing less effective
+//----------------------------------------------------------------------------------------------------------------------
 
-//Load unindexed points (i.e. returns a triangulated points array), ignore tex coords and normals if present
-bool load_obj(const char* file_name, float** points, int* point_count){
+#define OBJLOAD_LINE_SIZE 256
+
+//Load unindexed vertex positions (i.e. returns a triangulated points array), ignore tex coords and vn if present
+bool load_obj(const char* file_name, float** vp, uint32_t* vert_count){
 	FILE* fp = fopen(file_name, "r");
 	if(!fp) {
 		printf("Error: Failed to open %s\n", file_name);
@@ -24,16 +52,16 @@ bool load_obj(const char* file_name, float** points, int* point_count){
 	}
 	printf("Loading obj: '%s'\n", file_name);
 
-	int num_vps = 0;
-	int num_vts = 0;
-	int num_vns = 0;
-	int num_faces = 0;
+	uint32_t num_vps = 0;
+	uint32_t num_vts = 0;
+	uint32_t num_vns = 0;
+	uint32_t num_faces = 0;
 
-	char line[1024];
+	char line[OBJLOAD_LINE_SIZE];
 	line[0] = '\0';
 
 	//Count number of elements
-	while(fgets(line, 1024, fp)){
+	while(fgets(line, OBJLOAD_LINE_SIZE, fp)){
 		if(line[0]=='v'){
 			if(line[1]==' ') num_vps++;
 			else if(line[1]=='t') num_vts++;
@@ -43,46 +71,48 @@ bool load_obj(const char* file_name, float** points, int* point_count){
 	}
 	rewind(fp);
 
-	printf("Num vps: %i\n", num_vps);
-	printf("Num vts: %i\n", num_vts);
-	printf("Num vns: %i\n", num_vns);
-	printf("Num faces: %i\n", num_faces);
+	// printf("%u vps, ", num_vps);
+	// printf("%u vts, ", num_vts);
+	// printf("%u vns, ", num_vns);
+	// printf("%u faces ", num_faces);
 
-	*point_count = 3*num_faces;
+	*vert_count = 3*num_faces;
 	float* vp_unsorted = (float*)malloc(num_vps*3*sizeof(float)); //temp
-	*points = (float*)malloc(*point_count*3*sizeof(float));
-	printf("Allocated %u bytes for obj\n", (unsigned int)((*point_count)*3*sizeof(float)));
+	*vp = (float*)malloc(*vert_count*3*sizeof(float));
+	uint32_t mem_alloced = (uint32_t)(*vert_count*3*sizeof(float));
+	printf("(Allocated %u bytes)\n", mem_alloced);
 
 	//Iterators
-	int vp_index = 0; //for unsorted points
-	int points_index = 0; //for sorted points
+	uint32_t unsort_vp_it = 0; //for unsorted vp
+	uint32_t vp_it = 0; //for sorted vp
 
-	while(fgets(line, 1024, fp)){\
+	while(fgets(line, OBJLOAD_LINE_SIZE, fp)){
 		if(line[0]=='v' && line[1]==' '){
-			sscanf(line, "v %f %f %f", &vp_unsorted[vp_index], &vp_unsorted[vp_index+1], &vp_unsorted[vp_index+2]);
-			vp_index+=3;
+			sscanf(line, "v %f %f %f", &vp_unsorted[3*unsort_vp_it], &vp_unsorted[3*unsort_vp_it+1], &vp_unsorted[3*unsort_vp_it+2]);
+			unsort_vp_it+=1;
 		}
 		else if(line[0]=='f'){
-			int indices[3];
+			uint16_t indices[3];
 			//Scan the line depending on what parameters are included for faces
-			if(num_vts==0 && num_vns==0){ //Just vertex positions
-				sscanf(line, "f %i %i %i", &indices[0], &indices[1], &indices[2]);
+			if(num_vts==0 && num_vns==0){ //Just vertex vp
+				sscanf(line, "f %hu %hu %hu", &indices[0], &indices[1], &indices[2]);
 			}
-			else if(num_vts==0){ //vertex positions and normals
-				sscanf(line, "f %i//%*i %i//%*i %i//%*i", &indices[0], &indices[1], &indices[2]);
+			else if(num_vts==0){ //vertex vp and vn
+				sscanf(line, "f %hu//%*u %hu//%*u %hu//%*u", &indices[0], &indices[1], &indices[2]);
 			}
-			else if(num_vns==0){ //vertex positions and tex coords
-				sscanf(line, "f %i/%*i %i/%*i %i/%*i", &indices[0], &indices[1], &indices[2]);
+			else if(num_vns==0){ //vertex vp and tex coords
+				sscanf(line, "f %hu/%*u %hu/%*u %hu/%*u", &indices[0], &indices[1], &indices[2]);
 			}
-			else{ //vertex positions and tex coords and normals
-				sscanf(line, "f %i/%*i/%*i %i/%*i/%*i %i/%*i/%*i", &indices[0], &indices[1], &indices[2]);
+			else{ //vertex vp and tex coords and vn
+				sscanf(line, "f %hu/%*u/%*u %hu/%*u/%*u %hu/%*u/%*u", &indices[0], &indices[1], &indices[2]);
 			}
-			for(int i=0; i<3; i++){ //For the 3 vertices in this face
-				(*points)[points_index+3*i  ] = vp_unsorted[3*(indices[i]-1)];   //x // (indices[i]-1) -> wavefront obj doesn't use zero indexing
-				(*points)[points_index+3*i+1] = vp_unsorted[3*(indices[i]-1)+1]; //y
-				(*points)[points_index+3*i+2] = vp_unsorted[3*(indices[i]-1)+2]; //z
+			for(int i=0; i<3; ++i){
+				indices[i]-=1; //wavefront obj doesn't use zero indexing
+				(*vp)[3*vp_it  ] = vp_unsorted[3*indices[i]];   //x
+				(*vp)[3*vp_it+1] = vp_unsorted[3*indices[i]+1]; //y
+				(*vp)[3*vp_it+2] = vp_unsorted[3*indices[i]+2]; //z
+				vp_it+=1;
 			}
-			points_index+=9;
 		}//end elseif for 'f'
 	}//endwhile
 
@@ -91,8 +121,8 @@ bool load_obj(const char* file_name, float** points, int* point_count){
 	return true;
 }
 
-//Load unindexed points, tex coords and normals
-bool load_obj(const char* file_name, float** points, float** tex_coords, float** normals, int* point_count){
+//Load unindexed vertex positions, tex coords and normals
+bool load_obj(const char* file_name, float** vp, float** vt, float** vn, uint32_t* vert_count){
 	FILE* fp = fopen(file_name, "r");
 	if(!fp) {
 		printf("Error: Failed to open %s\n", file_name);
@@ -101,16 +131,16 @@ bool load_obj(const char* file_name, float** points, float** tex_coords, float**
 	}
 	printf("Loading obj: '%s'\n", file_name);
 
-	int num_vps = 0;
-	int num_vts = 0;
-	int num_vns = 0;
-	int num_faces = 0;
+	uint32_t num_vps = 0;
+	uint32_t num_vts = 0;
+	uint32_t num_vns = 0;
+	uint32_t num_faces = 0;
 
-	char line[1024];
+	char line[OBJLOAD_LINE_SIZE];
 	line[0] = '\0';
 
 	//Count number of elements
-	while(fgets(line, 1024, fp)){
+	while(fgets(line, OBJLOAD_LINE_SIZE, fp)){
 		if(line[0]=='v'){
 			if(line[1]==' ') num_vps++;
 			else if(line[1]=='t') num_vts++;
@@ -120,21 +150,21 @@ bool load_obj(const char* file_name, float** points, float** tex_coords, float**
 	}
 	rewind(fp);
 
-	printf("Num vps: %i\n", num_vps);
-	printf("Num vts: %i\n", num_vts);
-	printf("Num vns: %i\n", num_vns);
-	printf("Num faces: %i\n", num_faces);
+	// printf("%u vps, ", num_vps);
+	// printf("%u vts, ", num_vts);
+	// printf("%u vns, ", num_vns);
+	// printf("%u faces ", num_faces);
 
-	*point_count = 3*num_faces;
-	//points, tex coords and normals arrays that will be sorted based on indices in file
-	*points = (float*)malloc(*point_count*3*sizeof(float));
-	if(num_vts>0) *tex_coords = (float*)malloc(*point_count* 2*sizeof(float));
-	if(num_vns>0) *normals = (float*)malloc(*point_count* 3*sizeof(float));
+	*vert_count = 3*num_faces;
+	//vp, tex coords and vn arrays that will be sorted based on indices in file
+	*vp = (float*)malloc(*vert_count*3*sizeof(float));
+	if(num_vts>0) *vt = (float*)malloc(*vert_count*2*sizeof(float));
+	if(num_vns>0) *vn = (float*)malloc(*vert_count*3*sizeof(float));
 
-	unsigned int mem_alloced = *point_count* 2*sizeof(float);
-	if(num_vts>0) mem_alloced += *point_count* 2*sizeof(float);
-	if(num_vns>0) mem_alloced += *point_count* 3*sizeof(float);
-	printf("Allocated %u bytes for obj\n", mem_alloced);
+	uint32_t mem_alloced = *vert_count* 2*sizeof(float);
+	if(num_vts>0) mem_alloced += *vert_count*2*sizeof(float);
+	if(num_vns>0) mem_alloced += *vert_count*3*sizeof(float);
+	printf("(Allocated %u bytes)\n", mem_alloced);
 
 	//Arrays to hold the unsorted data from the obj
 	float* vp_unsorted = (float*)malloc(num_vps*3*sizeof(float));
@@ -142,86 +172,94 @@ bool load_obj(const char* file_name, float** points, float** tex_coords, float**
 	float* vn_unsorted = (float*)malloc(num_vns*3*sizeof(float));
 
 	//Iterators
-	int vp_index = 0; //unsorted points
-	int vt_index = 0; //unsorted tex coords
-	int vn_index = 0; //unsorted normals
-	int points_index = 0; //for sorted points
-	int tex_coords_index = 0; //for sorted tex coords
-	int normals_index = 0; //for sorted normals
+	uint32_t unsort_vp_it = 0; 
+	uint32_t unsort_vt_it = 0; 
+	uint32_t unsort_vn_it = 0; 
+	uint32_t vp_it = 0; //final sorted buffers
+	uint32_t vt_it = 0;
+	uint32_t vn_it = 0;
 
-	while(fgets(line, 1024, fp)){\
+	while(fgets(line, OBJLOAD_LINE_SIZE, fp)){
 		if(line[0]=='v'){
 			//Read in unsorted data (vp, vt, vn)
 			if(line[1]==' '){
-				sscanf(line, "v %f %f %f", &vp_unsorted[vp_index], &vp_unsorted[vp_index+1], &vp_unsorted[vp_index+2]);
-				vp_index+=3;
+				sscanf(line, "v %f %f %f", &vp_unsorted[3*unsort_vp_it], &vp_unsorted[3*unsort_vp_it+1], &vp_unsorted[3*unsort_vp_it+2]);
+				unsort_vp_it+=1;
 			}
 			else if(line[1]=='t'){
-				sscanf(line, "vt %f %f", &vt_unsorted[vt_index], &vt_unsorted[vt_index+1]);
-				vt_index+=2;
+				sscanf(line, "vt %f %f", &vt_unsorted[2*unsort_vt_it], &vt_unsorted[2*unsort_vt_it+1]);
+				unsort_vt_it+=1;
 			}
 			else if(line[1]=='n'){
-				sscanf(line, "vn %f %f %f", &vn_unsorted[vn_index], &vn_unsorted[vn_index+1], &vn_unsorted[vn_index+2]);
-				vn_index+=3;
+				sscanf(line, "vn %f %f %f", &vn_unsorted[3*unsort_vn_it], &vn_unsorted[3*unsort_vn_it+1], &vn_unsorted[3*unsort_vn_it+2]);
+				unsort_vn_it+=1;
 			}
 		}
 		else if(line[0]=='f'){
-			int indices[3];
+			uint16_t indices[3];
 			//Scan the line depending on what parameters are included for faces
-			if(num_vts==0 && num_vns==0){ //Just vertex positions
-				sscanf(line, "f %i %i %i", &indices[0], &indices[1], &indices[2]);
-				for(int i=0; i<3; i++){ //For the 3 vertices in this face
-					(*points)[points_index+3*i  ] = vp_unsorted[3*(indices[i]-1)];   //x // (indices[i]-1) -> wavefront obj doesn't use zero indexing
-					(*points)[points_index+3*i+1] = vp_unsorted[3*(indices[i]-1)+1]; //y
-					(*points)[points_index+3*i+2] = vp_unsorted[3*(indices[i]-1)+2]; //z
+			if(num_vts==0 && num_vns==0){ //Just vertex vp
+				sscanf(line, "f %hu %hu %hu", &indices[0], &indices[1], &indices[2]);
+				for(int i=0; i<3; i++){
+					indices[i]-=1; //wavefront obj doesn't use zero indexing
+					(*vp)[3*vp_it  ] = vp_unsorted[3*indices[i]];   //x
+					(*vp)[3*vp_it+1] = vp_unsorted[3*indices[i]+1]; //y
+					(*vp)[3*vp_it+2] = vp_unsorted[3*indices[i]+2]; //z
+					vp_it+=1;
 				}
-				points_index+=9;
 			}
-			else if(num_vts==0){ //vertex positions and normals
-				int vn[3];
-				sscanf(line, "f %i//%i %i//%i %i//%i", &indices[0], &vn[0], &indices[1], &vn[1], &indices[2], &vn[2]);
-				for(int i=0; i<3; i++){ //For the 3 vertices in this face
-					(*points)[points_index+3*i  ] = vp_unsorted[3*(indices[i]-1)  ]; //x // (indices[i]-1) -> wavefront obj doesn't use zero indexing
-					(*points)[points_index+3*i+1] = vp_unsorted[3*(indices[i]-1)+1]; //y
-					(*points)[points_index+3*i+2] = vp_unsorted[3*(indices[i]-1)+2]; //z
-					(*normals)[normals_index+3*i  ] = vn_unsorted[3*(vn[i]-1)  ];		//x
-					(*normals)[normals_index+3*i+1] = vn_unsorted[3*(vn[i]-1)+1];		//y
-					(*normals)[normals_index+3*i+2] = vn_unsorted[3*(vn[i]-1)+2];		//z
+			else if(num_vts==0){ //vertex vp and vn
+				uint16_t vn_index[3];
+				sscanf(line, "f %hu//%hu %hu//%hu %hu//%hu", &indices[0], &vn_index[0], &indices[1], &vn_index[1], &indices[2], &vn_index[2]);
+				for(int i=0; i<3; i++){
+					indices[i]-=1; //wavefront obj doesn't use zero indexing
+					vn_index[i]-=1;
+					(*vp)[3*vp_it  ] = vp_unsorted[3*indices[i]  ]; //x
+					(*vp)[3*vp_it+1] = vp_unsorted[3*indices[i]+1]; //y
+					(*vp)[3*vp_it+2] = vp_unsorted[3*indices[i]+2]; //z
+					(*vn)[3*vn_it  ] = vn_unsorted[3*vn_index[i]  ];//x
+					(*vn)[3*vn_it+1] = vn_unsorted[3*vn_index[i]+1];//y
+					(*vn)[3*vn_it+2] = vn_unsorted[3*vn_index[i]+2];//z
+					vp_it+=1;
+					vn_it+=1;
 				}
-				points_index+=9;
-				normals_index+=9;
 			}
-			else if(num_vns==0){ //vertex positions and tex coords
-				int vt[3];
-				sscanf(line, "f %i/%i %i/%i %i/%i",	&indices[0], &vt[0], &indices[1], &vt[1], &indices[2], &vt[2]);
-				for(int i=0; i<3; i++){ //For the 3 vertices in this face
-					(*points)[points_index+3*i  ] = vp_unsorted[3*(indices[i]-1)  ]; //x // (indices[i]-1) -> wavefront obj doesn't use zero indexing
-					(*points)[points_index+3*i+1] = vp_unsorted[3*(indices[i]-1)+1]; //y
-					(*points)[points_index+3*i+2] = vp_unsorted[3*(indices[i]-1)+2]; //z
-					(*tex_coords)[tex_coords_index+2*i  ] = vt_unsorted[2*(vt[i]-1)  ];	//u
-					(*tex_coords)[tex_coords_index+2*i+1] = vt_unsorted[2*(vt[i]-1)+1];	//v
+			else if(num_vns==0){ //vertex vp and tex coords
+				uint16_t vt_index[3];
+				sscanf(line, "f %hu/%hu %hu/%hu %hu/%hu", &indices[0], &vt_index[0], &indices[1], &vt_index[1], &indices[2], &vt_index[2]);
+				for(int i=0; i<3; i++){
+					indices[i]-=1; //wavefront obj doesn't use zero indexing
+					vt_index[i]-=1;
+					(*vp)[3*vp_it  ] = vp_unsorted[3*indices[i]  ]; //x
+					(*vp)[3*vp_it+1] = vp_unsorted[3*indices[i]+1]; //y
+					(*vp)[3*vp_it+2] = vp_unsorted[3*indices[i]+2]; //z
+					(*vt)[2*vt_it  ] = vt_unsorted[2*vt_index[i]  ];//u
+					(*vt)[2*vt_it+1] = vt_unsorted[2*vt_index[i]+1];//v
+					vp_it+=1;
+					vt_it+=1;
 				}
-				points_index+=9;
-				tex_coords_index+=6;
 			}
-			else{ //vertex positions and tex coords and normals
-				int vt[3], vn[3];
-				sscanf(line, "f %i/%i/%i %i/%i/%i %i/%i/%i",&indices[0], &vt[0], &vn[0], 
-															&indices[1], &vt[1], &vn[1], 
-															&indices[2], &vt[2], &vn[2]);
-				for(int i=0; i<3; i++){ //For the 3 vertices in this face
-					(*points)[points_index+3*i  ] = vp_unsorted[3*(indices[i]-1)  ]; //x // (indices[i]-1) -> wavefront obj doesn't use zero indexing
-					(*points)[points_index+3*i+1] = vp_unsorted[3*(indices[i]-1)+1]; //y
-					(*points)[points_index+3*i+2] = vp_unsorted[3*(indices[i]-1)+2]; //z
-					(*tex_coords)[tex_coords_index+2*i  ] = vt_unsorted[2*(vt[i]-1)  ];	//u
-					(*tex_coords)[tex_coords_index+2*i+1] = vt_unsorted[2*(vt[i]-1)+1];	//v
-					(*normals)[normals_index+3*i  ] = vn_unsorted[3*(vn[i]-1)  ];		//x
-					(*normals)[normals_index+3*i+1] = vn_unsorted[3*(vn[i]-1)+1];		//y
-					(*normals)[normals_index+3*i+2] = vn_unsorted[3*(vn[i]-1)+2];		//z
+			else{ //vertex vp and tex coords and vn
+				uint16_t vt_index[3], vn_index[3];
+				sscanf(line, "f %hu/%hu/%hu %hu/%hu/%hu %hu/%hu/%hu", &indices[0], &vt_index[0], &vn_index[0], 
+															          &indices[1], &vt_index[1], &vn_index[1], 
+																	  &indices[2], &vt_index[2], &vn_index[2]);
+				for(int i=0; i<3; i++){
+					indices[i]-=1; //wavefront obj doesn't use zero indexing
+					vt_index[i]-=1;
+					vn_index[i]-=1;
+					(*vp)[3*vp_it  ] = vp_unsorted[3*indices[i] ];  //x
+					(*vp)[3*vp_it+1] = vp_unsorted[3*indices[i]+1]; //y
+					(*vp)[3*vp_it+2] = vp_unsorted[3*indices[i]+2]; //z
+					(*vt)[2*vt_it  ] = vt_unsorted[2*vt_index[i]  ]; //u
+					(*vt)[2*vt_it+1] = vt_unsorted[2*vt_index[i]+1]; //v
+					(*vn)[3*vn_it  ] = vn_unsorted[3*vn_index[i]  ]; //x
+					(*vn)[3*vn_it+1] = vn_unsorted[3*vn_index[i]+1]; //y
+					(*vn)[3*vn_it+2] = vn_unsorted[3*vn_index[i]+2]; //z
+					vp_it+=1;
+					vt_it+=1;
+					vn_it+=1;
 				}
-				points_index+=9;
-				tex_coords_index+=6;
-				normals_index+=9;
 			}
 		}
 	}
@@ -234,9 +272,8 @@ bool load_obj(const char* file_name, float** points, float** tex_coords, float**
 	return true;
 }
 
-//Load vertex points with index buffer, ignore tex coords and normals if present
-bool load_obj_indexed(const char* file_name, float** points, unsigned short** indices, 
-					int* point_count, int* vert_count){
+//Load vertex positions with index buffer, ignore tex coords and normals if present
+bool load_obj_indexed(const char* file_name, float** vp, uint16_t** indices, uint32_t* vert_count, uint32_t* index_count){
 	FILE* fp = fopen(file_name, "r");
 	if(!fp) {
 		printf("Error: Failed to open %s\n", file_name);
@@ -245,16 +282,16 @@ bool load_obj_indexed(const char* file_name, float** points, unsigned short** in
 	}
 	printf("Loading obj: '%s'\n", file_name);
 
-	int num_vps = 0;
-	int num_vts = 0;
-	int num_vns = 0;
-	int num_faces = 0;
+	uint32_t num_vps = 0;
+	uint32_t num_vts = 0;
+	uint32_t num_vns = 0;
+	uint32_t num_faces = 0;
 
-	char line[1024];
+	char line[OBJLOAD_LINE_SIZE];
 	line[0] = '\0';
 
 	//Count number of elements
-	while(fgets(line, 1024, fp)){
+	while(fgets(line, OBJLOAD_LINE_SIZE, fp)){
 		if(line[0]=='v'){
 			if(line[1]==' ') num_vps++;
 			else if(line[1]=='t') num_vts++;
@@ -264,60 +301,61 @@ bool load_obj_indexed(const char* file_name, float** points, unsigned short** in
 	}
 	rewind(fp);
 
-	printf("Num vps: %i\n", num_vps);
-	printf("Num vts: %i\n", num_vts);
-	printf("Num vns: %i\n", num_vns);
-	printf("Num faces: %i\n", num_faces);
+	// printf("%u vps, ", num_vps);
+	// printf("%u vts, ", num_vts);
+	// printf("%u vns, ", num_vns);
+	// printf("%u faces ", num_faces);
 
-	if(num_faces>(65536)/3){
-		printf("ERROR loading obj: Too many faces for index buffer of shorts\n");
+	if(num_faces>(1<<16)/3){
+		printf("ERROR loading obj: Too many faces for index buffer of 16-bit shorts\n");
 		return false;
 	}
 
-	*point_count = 3*num_faces;
+	*index_count = 3*num_faces;
 	*vert_count = num_vps;
-	*points = (float*)malloc(num_vps*3*sizeof(float));
-	*indices = (unsigned short*)malloc(*point_count*sizeof(unsigned short));
-	printf("Allocated %u bytes for obj\n", (unsigned int)(num_vps*3*sizeof(float) + (*point_count)*sizeof(unsigned short)));
+	*vp = (float*)malloc(num_vps*3*sizeof(float));
+	*indices = (uint16_t*)malloc(*index_count*sizeof(uint16_t));
+	uint32_t mem_alloced = (uint32_t)(num_vps*3*sizeof(float) + (*index_count)*sizeof(uint16_t));
+	printf("(Allocated %u bytes)\n", mem_alloced);
 
 	//Iterators
-	int vp_index = 0;
-	int idxs_i = 0; //iterator for index buffer
+	uint32_t unsort_vp_it = 0;
+	uint32_t index_it = 0;
 
-	while(fgets(line, 1024, fp)){\
+	while(fgets(line, OBJLOAD_LINE_SIZE, fp)){
 		if(line[0]=='v'){
 			if(line[1]==' '){
-				sscanf(line, "v %f %f %f", &(*points)[vp_index], &(*points)[vp_index+1], &(*points)[vp_index+2]);
-				vp_index+=3;
+				sscanf(line, "v %f %f %f", &(*vp)[3*unsort_vp_it], &(*vp)[3*unsort_vp_it+1], &(*vp)[3*unsort_vp_it+2]);
+				unsort_vp_it+=1;
 			}
 		}
 		else if(line[0]=='f'){
 			//Scan the line depending on what parameters are included for faces
-			if(num_vts==0 && num_vns==0){ //Just vertex positions
-				sscanf(line, "f %hu %hu %hu",  &(*indices)[idxs_i], &(*indices)[idxs_i+1], &(*indices)[idxs_i+2]);
+			if(num_vts==0 && num_vns==0){ //Just vertex vp
+				sscanf(line, "f %hu %hu %hu",  &(*indices)[index_it], &(*indices)[index_it+1], &(*indices)[index_it+2]);
 			}
-			else if(num_vts==0){ //vertex positions and normals
-				sscanf(line, "f %hu//%*u %hu//%*u %hu//%*u", &(*indices)[idxs_i], &(*indices)[idxs_i+1], &(*indices)[idxs_i+2]);
+			else if(num_vts==0){ //vertex vp and vn
+				sscanf(line, "f %hu//%*u %hu//%*u %hu//%*u", &(*indices)[index_it], &(*indices)[index_it+1], &(*indices)[index_it+2]);
 			}
-			else if(num_vns==0){ //vertex positions and tex coords
-				sscanf(line, "f %hu/%*u %hu/%*u %hu/%*u", &(*indices)[idxs_i], &(*indices)[idxs_i+1], &(*indices)[idxs_i+2]);
+			else if(num_vns==0){ //vertex vp and tex coords
+				sscanf(line, "f %hu/%*u %hu/%*u %hu/%*u", &(*indices)[index_it], &(*indices)[index_it+1], &(*indices)[index_it+2]);
 			}
-			else{ //vertex positions and tex coords and normals
-				sscanf(line, "f %hu/%*u/%*u %hu/%*u/%*u %hu/%*u/%*u", &(*indices)[idxs_i], &(*indices)[idxs_i+1], &(*indices)[idxs_i+2]);
+			else{ //vertex vp and tex coords and vn
+				sscanf(line, "f %hu/%*u/%*u %hu/%*u/%*u %hu/%*u/%*u", &(*indices)[index_it], &(*indices)[index_it+1], &(*indices)[index_it+2]);
 			}
 			for(int i=0; i<3; i++){
-				(*indices)[idxs_i+i]--; //wavefront obj doesn't use zero indexing
+				(*indices)[index_it+i]--; //wavefront obj doesn't use zero indexing
 			}
-			idxs_i+=3;
+			index_it+=3;
 		}//end elseif for 'f'
 	}//endwhile
 	fclose(fp);
 	return true;
 }
 
-//Load points, tex coords and normals with index buffer
-bool load_obj_indexed(const char* file_name, float** points, float** tex_coords, float** normals, 
-				unsigned short** indices, int* point_count, int* vert_count){
+//Load vertex positions, tex coords and normals with index buffer
+//Smooth normals by default
+bool load_obj_indexed(const char* file_name, float** vp, float** vt, float** vn, uint16_t** indices, uint32_t* vert_count, uint32_t* index_count, bool smooth_normals){
 	FILE* fp = fopen(file_name, "r");
 	if(!fp) {
 		printf("Error: Failed to open %s\n", file_name);
@@ -326,16 +364,16 @@ bool load_obj_indexed(const char* file_name, float** points, float** tex_coords,
 	}
 	printf("Loading obj: '%s'\n", file_name);
 
-	int num_vps = 0;
-	int num_vts = 0;
-	int num_vns = 0;
-	int num_faces = 0;
+	uint32_t num_vps = 0;
+	uint32_t num_vts = 0;
+	uint32_t num_vns = 0;
+	uint32_t num_faces = 0;
 
-	char line[1024];
+	char line[OBJLOAD_LINE_SIZE];
 	line[0] = '\0';
 
 	//Count number of elements
-	while(fgets(line, 1024, fp)){
+	while(fgets(line, OBJLOAD_LINE_SIZE, fp)){
 		if(line[0]=='v'){
 			if(line[1]==' ') num_vps++;
 			else if(line[1]=='t') num_vts++;
@@ -345,116 +383,278 @@ bool load_obj_indexed(const char* file_name, float** points, float** tex_coords,
 	}
 	rewind(fp);
 
-	printf("Num vps: %i\n", num_vps);
-	printf("Num vts: %i\n", num_vts);
-	printf("Num vns: %i\n", num_vns);
-	printf("Num faces: %i\n", num_faces);
+	// printf("%u vps, ", num_vps);
+	// printf("%u vts, ", num_vts);
+	// printf("%u vns, ", num_vns);
+	// printf("%u faces ", num_faces);
 
-	if(num_faces>(65536)/3){
+	if(num_faces>(1<<16)/3){
 		printf("ERROR loading obj: Too many faces for index buffer of shorts\n");
 		return false;
 	}
 	
-	*point_count = 3*num_faces;
-	*vert_count = num_vps;
-	*points = (float*)malloc(num_vps*3*sizeof(float));
-	*indices = (unsigned short*)malloc(*point_count*sizeof(unsigned short));
+	*index_count = 3*num_faces;
+	*vp = (float*)malloc(*index_count*3*sizeof(float)); //overallocate to worst possible, realloc to shrink later
+	*indices = (uint16_t*)malloc(*index_count*sizeof(uint16_t));
 	//vt and vn arrays that will be sorted based on index buffer
-	if(num_vts>0) *tex_coords = (float*)malloc(*point_count * 2*sizeof(float));
-	if(num_vns>0) *normals = (float*)malloc(*point_count * 3*sizeof(float));
-	
-	unsigned int mem_alloced = num_vps*3*sizeof(float) + (*point_count)*sizeof(unsigned short);
-	if(num_vts>0) mem_alloced += *point_count * 2*sizeof(float);
-	if(num_vns>0) mem_alloced += *point_count * 3*sizeof(float);
-	printf("Allocated %u bytes for obj\n", mem_alloced);
+	if(num_vts>0) *vt = (float*)malloc(*index_count*2*sizeof(float));
+	if(num_vns>0) *vn = (float*)calloc(*index_count*3, sizeof(float)); //must be zero, we add to this later
 
 	//Arrays to hold the unsorted data from the obj
+	float* vp_unsorted = (float*)malloc(3*num_vps*sizeof(float));
 	float* vt_unsorted = (float*)malloc(2*num_vts*sizeof(float));
 	float* vn_unsorted = (float*)malloc(3*num_vns*sizeof(float));
 
 	//Iterators
-	int vp_index = 0;
-	int vt_index = 0;
-	int vn_index = 0;
-	int idxs_i = 0; //iterator for index buffer
+	uint32_t vert_it = 0;
+	uint32_t unsort_vp_it = 0;
+	uint32_t unsort_vt_it = 0;
+	uint32_t unsort_vn_it = 0;
+	uint32_t index_it = 0; //iterator for index buffer
 
-	while(fgets(line, 1024, fp)){\
+	//If we don't have UVs, won't have to add extra vp
+	if(num_vts==0 && (smooth_normals || num_vns==0)) vert_it = num_vps;
+
+	while(fgets(line, OBJLOAD_LINE_SIZE, fp)){
 		if(line[0]=='v'){
 			if(line[1]==' '){
-				sscanf(line, "v %f %f %f", &(*points)[vp_index], &(*points)[vp_index+1], &(*points)[vp_index+2]);
-				vp_index+=3;
+				sscanf(line, "v %f %f %f", &vp_unsorted[3*unsort_vp_it], &vp_unsorted[3*unsort_vp_it+1], &vp_unsorted[3*unsort_vp_it+2]);
+				unsort_vp_it+=1;
 			}
 			else if(line[1]=='t'){
-				sscanf(line, "vt %f %f", &vt_unsorted[vt_index], &vt_unsorted[vt_index+1]);
-				vt_index+=2;
+				sscanf(line, "vt %f %f", &vt_unsorted[2*unsort_vt_it], &vt_unsorted[2*unsort_vt_it+1]);
+				unsort_vt_it+=1;
 			}
 			else if(line[1]=='n'){
-				sscanf(line, "vn %f %f %f", &vn_unsorted[vn_index], &vn_unsorted[vn_index+1], &vn_unsorted[vn_index+2]);
-				vn_index+=3;
+				sscanf(line, "vn %f %f %f", &vn_unsorted[3*unsort_vn_it], &vn_unsorted[3*unsort_vn_it+1], &vn_unsorted[3*unsort_vn_it+2]);
+				unsort_vn_it+=1;
 			}
 		}
+
 		else if(line[0]=='f'){
 			//Scan the line depending on what parameters are included for faces
-			if(num_vts==0 && num_vns==0){ //Just vertex positions
-				sscanf(line, "f %hu %hu %hu",  &(*indices)[idxs_i],
-											&(*indices)[idxs_i+1],
-											&(*indices)[idxs_i+2]);
-				//wavefront doesn't use zero indexing
-				(*indices)[idxs_i]--; (*indices)[idxs_i+1]--; (*indices)[idxs_i+2]--;
-				idxs_i+=3;
-			}
-			else if(num_vts==0){ //vertex positions and normals
-				int vn[3];
-				sscanf(line, "f %hu//%i %hu//%i %hu//%i",  &(*indices)[idxs_i],	&vn[0], 
-														&(*indices)[idxs_i+1],	&vn[1], 
-														&(*indices)[idxs_i+2],	&vn[2]);
-				for(int i=0; i<3; i++){ //add normals for the 3 verts in this face
-					(*indices)[idxs_i+i]--; //wavefront doesn't use zero indexing
-					vn[i]--;
+			if(num_vts==0 && num_vns==0){ //Just vp
+				sscanf(line, "f %hu %hu %hu", &(*indices)[index_it], &(*indices)[index_it+1], &(*indices)[index_it+2]);
 
-					(*normals)[3*(idxs_i+i)]   = vn_unsorted[3*vn[i]];
-					(*normals)[3*(idxs_i+i)+1] = vn_unsorted[3*vn[i]+1];
-					(*normals)[3*(idxs_i+i)+2] = vn_unsorted[3*vn[i]+2];
+				for(int i=0; i<3; i++){
+					((*indices)[index_it+i])--; //wavefront doesn't use zero indexing
+					uint16_t curr_ind = (*indices)[index_it+i];
+					(*vp)[3*curr_ind]   = vp_unsorted[3*curr_ind];
+					(*vp)[3*curr_ind+1] = vp_unsorted[3*curr_ind+1];
+					(*vp)[3*curr_ind+2] = vp_unsorted[3*curr_ind+2];
 				}
-				idxs_i+=3;
+				index_it+=3;
 			}
-			else if(num_vns==0){ //vertex positions and tex coords
-				int vt[3];
-				sscanf(line, "f %hu/%i %hu/%i %hu/%i",	&(*indices)[idxs_i], 	&vt[0], 
-														&(*indices)[idxs_i+1],	&vt[1], 
-														&(*indices)[idxs_i+2],	&vt[2]);
-				for(int i=0; i<3; i++){ //add tex coords for the 3 verts in this face
-					(*indices)[idxs_i+i]--; //wavefront doesn't use zero indexing
-					vt[i]--;
 
-					(*tex_coords)[2*(idxs_i+i)]   = vt_unsorted[2*vt[i]];
-					(*tex_coords)[2*(idxs_i+i)+1] = vt_unsorted[2*vt[i]+1];
-				}
-				idxs_i+=3;
+			else if(num_vts==0){ //vp and vn
+				uint16_t index[3], vn_index[3];
+				sscanf(line, "f %hu//%hu %hu//%hu %hu//%hu", &index[0], &vn_index[0], &index[1], &vn_index[1],  &index[2], &vn_index[2]);
+
+				for(int i=0; i<3; i++){ //add vn for the 3 verts in this face
+					index[i]--; //wavefront doesn't use zero indexing
+					(*indices)[index_it+i] = index[i];
+					vn_index[i]--;
+					uint16_t curr_ind = index[i];
+
+					if(smooth_normals){
+						(*vp)[3*curr_ind]   = vp_unsorted[3*curr_ind];
+						(*vp)[3*curr_ind+1] = vp_unsorted[3*curr_ind+1];
+						(*vp)[3*curr_ind+2] = vp_unsorted[3*curr_ind+2];
+						//Add to these, normalise later (basically average vert's norms from all faces it's in)
+						(*vn)[3*curr_ind]   += vn_unsorted[3*vn_index[i]];
+						(*vn)[3*curr_ind+1] += vn_unsorted[3*vn_index[i]+1];
+						(*vn)[3*curr_ind+2] += vn_unsorted[3*vn_index[i]+2];
+					}
+					else { //!smooth_normals
+						//Search index buffer for current vert, see if it already exists
+						// *** NB: O(n), yikes! Could try to improve, but the real solution is to use a saner file format 
+						//than .obj for indexed meshes with UVs! Run this horrorshow once and convert to a better format ***
+						bool found_duplicate = false;
+						//Get vertex data for the vert we're about to add:
+						vec3 vp_curr = vec3(vp_unsorted[3*curr_ind],    vp_unsorted[3*curr_ind+1],    vp_unsorted[3*curr_ind+2]);
+						vec3 vn_curr = vec3(vn_unsorted[3*vn_index[i]], vn_unsorted[3*vn_index[i]+1], vn_unsorted[3*vn_index[i]+2]);
+						for(int j=index_it-1; j>=0; --j){ //iterate backwards, dupe verts are usually close
+							//Get jth vertex data
+							vec3 vp_j = vec3((*vp)[3*(*indices)[j]], (*vp)[3*(*indices)[j]+1], (*vp)[3*(*indices)[j]+2]);
+							vec3 vn_j = vec3((*vn)[3*(*indices)[j]], (*vn)[3*(*indices)[j]+1], (*vn)[3*(*indices)[j]+2]);
+
+							//Check if jth vertex is the same as new vertex
+							if(vp_curr == vp_j){
+								//If we don't want smoothed normals, normal must be the same
+								if(!smooth_normals && !(vn_curr==vn_j)) continue;
+
+								//Vertex is the same! Just append its index to buffer
+								found_duplicate = true;
+								(*indices)[index_it] = (*indices)[j];
+								//Add new (jth) vertex normal to existing one and normalise later
+								(*vn)[3*(*indices)[j]  ] += vn_curr.x;
+								(*vn)[3*(*indices)[j]+1] += vn_curr.y;
+								(*vn)[3*(*indices)[j]+2] += vn_curr.z;
+								break;
+							}
+						}//end for j
+
+						if(!found_duplicate){ //Current vertex is new, add to buffers
+							//Add point to *vp
+							assert(3*vert_it+2 <= *index_count*3);
+							(*vp)[3*vert_it]   = vp_curr.x;
+							(*vp)[3*vert_it+1] = vp_curr.y;
+							(*vp)[3*vert_it+2] = vp_curr.z;
+							//Add normal
+							(*vn)[3*vert_it]   += vn_curr.x;
+							(*vn)[3*vert_it+1] += vn_curr.y;
+							(*vn)[3*vert_it+2] += vn_curr.z;
+							//Append new index to index buffer
+							assert(index_it<*index_count);
+							(*indices)[index_it] = vert_it;
+							vert_it+=1; //advance index
+						}
+						index_it+=1;
+						assert(index_it<(1<<16));
+					} //end else (i.e. !smooth_normals
+				}//end for i
+				if(smooth_normals) index_it+=3;
 			}
-			else{ //vertex positions and tex coords and normals
-				int vt[3], vn[3];
-				sscanf(line, "f %hu/%i/%i %hu/%i/%i %hu/%i/%i",	&(*indices)[idxs_i],	&vt[0], &vn[0], 
-																&(*indices)[idxs_i+1],	&vt[1], &vn[1], 
-																&(*indices)[idxs_i+2],	&vt[2], &vn[2]);
-				for(int i=0; i<3; i++){ //add normals and tex coords for the 3 verts in this face
-					(*indices)[idxs_i+i]--; //wavefront doesn't use zero indexing
-					vt[i]--;
-					vn[i]--;
 
-					(*tex_coords)[2*(idxs_i+i)]   = vt_unsorted[2*vt[i]];
-					(*tex_coords)[2*(idxs_i+i)+1] = vt_unsorted[2*vt[i]+1];
+			else if(num_vns==0){ //vp and vt
+				uint16_t index[3], vt_index[3];
+				sscanf(line, "f %hu/%hu %hu/%hu %hu/%hu", &index[0], &vt_index[0], &index[1], &vt_index[1],  &index[2], &vt_index[2]);
 
-					(*normals)[3*(idxs_i+i)]   = vn_unsorted[3*vn[i]];
-					(*normals)[3*(idxs_i+i)+1] = vn_unsorted[3*vn[i]+1];
-					(*normals)[3*(idxs_i+i)+2] = vn_unsorted[3*vn[i]+2];
-				}
-				idxs_i+=3;
-			}
-		}
+				for(int i=0; i<3; i++){
+					index[i]--; //wavefront doesn't use zero indexing
+					vt_index[i]--;
+					uint16_t curr_ind = index[i];
+					//Search index buffer for current vert, see if it already exists
+					// *** NB: O(n), yikes! Could try to improve, but the real solution is to use a saner file format 
+					//than .obj for indexed meshes with UVs! Run this horrorshow once and convert to a better format ***
+					bool found_duplicate = false;
+					//Get vertex data for the vert we're about to add:
+					vec3 vp_curr = vec3(vp_unsorted[3*curr_ind], vp_unsorted[3*curr_ind+1], vp_unsorted[3*curr_ind+2]);
+					vec2 vt_curr = vec2(vt_unsorted[2*vt_index[i]], vt_unsorted[2*vt_index[i]+1]);
+					for(int j=index_it-1; j>=0; --j){ //iterate backwards, dupe verts are usually close
+						//Get jth vertex data
+						vec3 vp_j = vec3((*vp)[3*(*indices)[j]], (*vp)[3*(*indices)[j]+1], (*vp)[3*(*indices)[j]+2]);
+						vec2 vt_j = vec2((*vt)[2*(*indices)[j]], (*vt)[2*(*indices)[j]+1]);
+
+						//Check if jth vertex is the same as new vertex
+						if((vp_curr ==vp_j) && (vt_curr == vt_j)){
+							//Vertex is the same! Just append its index to buffer
+							found_duplicate = true;
+							(*indices)[index_it] = (*indices)[j];
+							break;
+						}
+					}//end for j
+
+					if(!found_duplicate){ //Current vertex is new, add to buffers
+						//Add point to *vp
+						assert(3*vert_it+2 <= *index_count*3);
+						(*vp)[3*vert_it]   = vp_curr.x;
+						(*vp)[3*vert_it+1] = vp_curr.y;
+						(*vp)[3*vert_it+2] = vp_curr.z;
+						//Add UV to *vt
+						(*vt)[2*vert_it]   = vt_unsorted[2*vt_index[i]];
+						(*vt)[2*vert_it+1] = vt_unsorted[2*vt_index[i]+1];
+						//Change index to be newest point
+						assert(index_it<*index_count);
+						(*indices)[index_it] = vert_it;
+						vert_it+=1;
+					}
+					index_it+=1;
+					assert(index_it<(1<<16));
+				}//end for i
+			}//end if num_vns
+
+			else{ //vp, vt and vn
+				uint16_t index[3], vt_index[3], vn_index[3];
+				sscanf(line, "f %hu/%hu/%hu %hu/%hu/%hu %hu/%hu/%hu",	&index[0], &vt_index[0], &vn_index[0], 
+																&index[1], &vt_index[1], &vn_index[1], 
+																&index[2], &vt_index[2], &vn_index[2]);
+				for(int i=0; i<3; i++){
+					index[i]--; //wavefront doesn't use zero indexing
+					vt_index[i]--;
+					vn_index[i]--;
+					uint16_t curr_ind = index[i];
+					//Search index buffer for current vert, see if it already exists
+					// *** NB: O(n), yikes! Could try to improve, but the real solution is to use a saner file format 
+					//than .obj for indexed meshes with UVs! Run this horrorshow once and convert to a better format ***
+					bool found_duplicate = false;
+					//Get vertex data for the vert we're about to add:
+					vec3 vp_curr = vec3(vp_unsorted[3*curr_ind], vp_unsorted[3*curr_ind+1], vp_unsorted[3*curr_ind+2]);
+					vec2 vt_curr = vec2(vt_unsorted[2*vt_index[i]], vt_unsorted[2*vt_index[i]+1]);
+					vec3 vn_curr = vec3(vn_unsorted[3*vn_index[i]], vn_unsorted[3*vn_index[i]+1], vn_unsorted[3*vn_index[i]+2]);
+					for(int j=index_it-1; j>=0; --j){ //iterate backwards, dupe verts are usually close
+						//Get jth vertex data
+						vec3 vp_j = vec3((*vp)[3*(*indices)[j]], (*vp)[3*(*indices)[j]+1], (*vp)[3*(*indices)[j]+2]);
+						vec2 vt_j = vec2((*vt)[2*(*indices)[j]], (*vt)[2*(*indices)[j]+1]);
+						vec3 vn_j = vec3((*vn)[3*(*indices)[j]], (*vn)[3*(*indices)[j]+1], (*vn)[3*(*indices)[j]+2]);
+
+						//Check if jth vertex is the same as new vertex
+						if((vp_curr == vp_j) && (vt_curr == vt_j)) {
+							//If we don't want smoothed normals, normal must be the same
+							if(!smooth_normals && !(vn_curr==vn_j))  continue;
+							
+							//Vertex is the same! Just append its index to buffer
+							found_duplicate = true;
+							(*indices)[index_it] = (*indices)[j];
+
+							//Add new (jth) vertex normal to existing one and normalise later
+							(*vn)[3*(*indices)[j]  ] += vn_curr.x;
+							(*vn)[3*(*indices)[j]+1] += vn_curr.y;
+							(*vn)[3*(*indices)[j]+2] += vn_curr.z;
+							break;
+						}
+					}//end for j
+
+					if(!found_duplicate){ //Current vertex is new, add to buffers
+						//Add point to *vp
+						assert(3*vert_it+2 < *index_count*3);
+						(*vp)[3*vert_it]   = vp_curr.x;
+						(*vp)[3*vert_it+1] = vp_curr.y;
+						(*vp)[3*vert_it+2] = vp_curr.z;
+						//Add UV to *vt
+						(*vt)[2*vert_it]   = vt_curr.x;
+						(*vt)[2*vert_it+1] = vt_curr.y;
+						//Add normal
+						(*vn)[3*vert_it]   += vn_curr.x;
+						(*vn)[3*vert_it+1] += vn_curr.y;
+						(*vn)[3*vert_it+2] += vn_curr.z;
+						//Append new index to index buffer
+						assert(index_it<*index_count);
+						(*indices)[index_it] = vert_it;
+						vert_it+=1; //advance index
+					}
+					index_it+=1;
+				}//end for i
+			}//end else{ //vp, vt and vn
+
+		}//end if line[0]=='f'
+	}//end while
+
+	//Resize everything to free up the space we didn't use
+	*vert_count = vert_it;
+	*index_count = index_it;
+	*vp = (float*)realloc(*vp, *vert_count*3*sizeof(float));
+	*vt = (float*)realloc(*vt, *vert_count*2*sizeof(float));
+	if(num_vts>0) *vn = (float*)realloc(*vn, *vert_count*3*sizeof(float));
+	if(num_vns>0) *indices = (uint16_t*)realloc(*indices, *index_count*sizeof(uint16_t));
+
+	uint32_t mem_alloced = *vert_count*3*sizeof(float) + (*index_count)*sizeof(uint16_t);
+	if(num_vts>0) mem_alloced += *vert_count*2*sizeof(float);
+	if(num_vns>0) mem_alloced += *vert_count*3*sizeof(float);
+	printf("(Allocated %u bytes)\n", mem_alloced);
+
+	//Normalise vn
+	for(unsigned int i=0; i<*vert_count*3; i+=3){
+		vec3 temp = vec3((*vn)[i], (*vn)[i+1], (*vn)[i+2]);
+		temp = normalise(temp);
+		(*vn)[i]   = temp.x;
+		(*vn)[i+1] = temp.y;
+		(*vn)[i+2] = temp.z;
 	}
+
 	fclose(fp);
 
+	free(vp_unsorted);
 	free(vt_unsorted);
 	free(vn_unsorted);
 

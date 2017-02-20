@@ -1,8 +1,7 @@
 #pragma once
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <stdio.h>
-#include "input.h"
+// #include <GLFW/glfw3.h>
+// #include <stdio.h>
+// #include "Input.h"
 
 bool init_gl(GLFWwindow* &window, int window_width, const int window_height) {
 
@@ -30,9 +29,8 @@ bool init_gl(GLFWwindow* &window, int window_width, const int window_height) {
 	glfwMakeContextCurrent(window);
 	glfwSetKeyCallback(window, key_callback);
 	
-	/* start GLEW extension handler */
-	glewExperimental = GL_TRUE;
-	glewInit();
+	//Load OpenGL functions
+	gl_lite_init();
 
 	const GLubyte* renderer = glGetString(GL_RENDERER);
 	const GLubyte* version = glGetString(GL_VERSION);
@@ -50,4 +48,30 @@ bool init_gl(GLFWwindow* &window, int window_width, const int window_height) {
 	glFrontFace(GL_CCW);
 
 	return true;
+}
+
+//TODO put this somewhere sensible!
+//Note: for MSVC, change __builtin_trap() to __debugbreak()
+#define assert(exp) \
+	{if(!(exp)) { \
+		printf("Assertion failed in %s, Line %d:\n%s\n...", __FILE__, __LINE__, #exp); \
+		__builtin_trap(); \
+	}} \
+
+#define check_gl_error() _checkOglError(__FILE__, __LINE__)
+
+static int _checkOglError(const char *file, int line){
+    GLenum glErr = glGetError();
+    if (glErr != GL_NO_ERROR) {
+        printf("glError in file %s @ line %d:\n%d - ", file, line, glErr);
+		switch(glErr) {
+			case GL_INVALID_OPERATION:				printf("INVALID_OPERATION\n");				return 1;
+			case GL_INVALID_ENUM:					printf("INVALID_ENUM\n");					return 1;
+			case GL_INVALID_VALUE:					printf("INVALID_VALUE\n");      			return 1;
+			case GL_OUT_OF_MEMORY:					printf("OUT_OF_MEMORY\n");      			return 1;
+			case GL_INVALID_FRAMEBUFFER_OPERATION:	printf("INVALID_FRAMEBUFFER_OPERATION\n");	return 1;
+			default:								printf("UNRECOGNISED ERROR\n");				return 1;
+        }
+    }
+    return 0;
 }

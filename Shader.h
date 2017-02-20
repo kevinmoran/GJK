@@ -1,21 +1,23 @@
 #pragma once
-#include <GL/glew.h>
-#include <stdio.h>
+// #include <stdio.h>
 #include <cstring> //strcat
 
 #define SHADER_PATH "Shaders/"
+#define VP_ATTRIB_LOC 0
+#define VT_ATTRIB_LOC 1
+#define VN_ATTRIB_LOC 2
 
 struct Shader {
     GLuint id;
     GLuint M_loc, V_loc, P_loc;
     bool compiled;
 };
-Shader load_shader(const char* vert_file, const char* frag_file);
+Shader init_shader(const char* vert_file, const char* frag_file);
 static bool load_shader_program(const char* vert_file, const char* frag_file, GLuint* id);
 bool reload_shader_program(const char* vert_file, const char* frag_file, Shader* s);
 void delete_program(Shader* s);
 
-Shader load_shader(const char* vert_file, const char* frag_file){
+Shader init_shader(const char* vert_file, const char* frag_file){
     Shader temp;
     if(!load_shader_program(vert_file, frag_file, &temp.id)){
         //handle failure? default shader program?
@@ -120,6 +122,11 @@ static bool load_shader_program(const char* vert_file, const char* frag_file, GL
     *id = glCreateProgram();
     glAttachShader(*id, vs);
     glAttachShader(*id, fs);
+
+    glBindAttribLocation(*id, VP_ATTRIB_LOC, "vp");
+    glBindAttribLocation(*id, VT_ATTRIB_LOC, "vt");
+    glBindAttribLocation(*id, VN_ATTRIB_LOC, "vn");
+
     glLinkProgram(*id);
     
     //Check for linking errors
@@ -146,7 +153,7 @@ static bool load_shader_program(const char* vert_file, const char* frag_file, GL
 
 bool reload_shader_program(const char* vert_file, const char* frag_file, Shader* s){
     delete_program(s);
-    if (!load_shader_program(vert_file, frag_file, &(s->id))) {
+    if(!load_shader_program(vert_file, frag_file, &(s->id))) {
         fprintf(stderr, "ERROR in reload_shader_program using vert shader %s and frag shader %s", vert_file, frag_file);
         return false;
     }
@@ -157,7 +164,7 @@ bool reload_shader_program(const char* vert_file, const char* frag_file, Shader*
 }
 
 void delete_program(Shader* s){
-    if (s->compiled) {
+    if(s->compiled) {
         glDeleteProgram(s->id);
 
         s->id = -1;

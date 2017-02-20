@@ -1,6 +1,5 @@
 #pragma once
-#include <assert.h>
-#include "maths_funcs.h"
+#include "GameMaths.h"
 
 //Kevin's implementation of the Gilbert-Johnson-Keerthi intersection algorithm
 //Most useful references (Huge thanks to all the authors):
