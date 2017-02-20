@@ -378,7 +378,7 @@ struct mat3 {
 	}
 	mat3(mat4); //fwd dec,  can't define before mat4
 
-	vec3 operator* (const vec3& rhs) {
+	vec3 operator* (const vec3& rhs) const {
 		// 0x + 3y + 6z
 		float x =
 			m[0] * rhs.v[0] +
