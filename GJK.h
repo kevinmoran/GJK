@@ -339,11 +339,18 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
         //Reconstruct polytope with p added
         for(int i=0; i<num_loose_edges; i++){
             assert(num_faces<EPA_MAX_NUM_FACES);
-            //TODO: verify that this maintains CCW winding
             faces[num_faces][0] = loose_edges[i][0];
             faces[num_faces][1] = loose_edges[i][1];
             faces[num_faces][2] = p;
             faces[num_faces][3] = normalise(cross(loose_edges[i][0]-loose_edges[i][1], loose_edges[i][0]-p));
+
+            //Check for wrong normal to maintain CCW winding
+            if(dot(faces[num_faces][0], faces[num_faces][3])<0){
+                vec3 temp = faces[num_faces][0];
+                faces[num_faces][0] = faces[num_faces][1];
+                faces[num_faces][1] = temp;
+                faces[num_faces][3] = -faces[num_faces][3];
+            }
             num_faces++;
         }
     }
