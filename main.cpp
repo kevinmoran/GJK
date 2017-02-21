@@ -55,7 +55,7 @@ int main() {
 	box_M[4] = translate(identity_mat4(), vec3(1.5f, 0, 1.5f));
 	vec4 box_colour[5];
 
-	Collider box_collider[5];
+	Polytope box_collider[5];
 	box_collider[0].pos = vec3(-1.5f, 0, -1.5f);
 	box_collider[1].pos = vec3(-1.5f, 0, 1.5f);
 	box_collider[2].pos = vec3(0, 0, 0);
@@ -74,7 +74,7 @@ int main() {
 	vec4 player_colour = vec4(0.1f, 0.8f, 0.3f, 1.0f);
 	float player_speed = 10;
 
-	Collider player_collider;
+	Polytope player_collider;
 	player_collider.pos = player_pos;
 	player_collider.points = box_points;
 	player_collider.num_points = 8;
@@ -155,7 +155,9 @@ int main() {
 			player_collider.pos = player_pos;
 			for(int i=0; i<5; i++){
 				vec3 mtv(0,0,0); //minimum translation vector
-				if(gjk(player_collider, box_collider[i], &mtv)) 
+				Collider* p = &player_collider;
+				Collider* b = &box_collider[i];
+				if(gjk(p, b, &mtv)) 
 					box_colour[i] = vec4(0.8f, 0.7f, 0.0f, 1);
 				else 
 					box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);

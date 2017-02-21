@@ -22,50 +22,54 @@
 
 struct Collider;
 
-vec3 support(const Collider &shape, vec3 dir);
-bool gjk(Collider coll1, Collider coll2, vec3* mtv);
+bool gjk(Collider* coll1, Collider* coll2, vec3* mtv);
 void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &simp_dim, vec3 &search_dir);
 bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &simp_dim, vec3 &search_dir);
-vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2);
+vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2);
 
+//Base struct for all collision shapes
 struct Collider{
 	vec3    pos;            //origin in world space
-	float   *points;        //array of verts (x0 y0 z0 x1 y1 z1 etc)
-	int     num_points;     //num vertices 
     mat3    matRS;          //rotation/scale component of model matrix
 	mat3    matRS_inverse; 
+    virtual vec3 support(vec3 dir) = 0;
 };
 
-vec3 support(const Collider &shape, vec3 dir){
-    dir = shape.matRS_inverse*dir; //transform dir by shape's inverse rotation matrix
+//Polytope: Just a convex set of points
+struct Polytope : Collider {
+	float   *points;    //(x0 y0 z0 x1 y1 z1 etc)
+	int     num_points;
 
-    vec3 furthest_point = vec3(shape.points[0], shape.points[1], shape.points[2]);
-    float max_dot = dot(furthest_point, dir);
+    //Dumb O(n) support function, just check all points
+    vec3 support(vec3 dir){
+        dir = matRS_inverse*dir;
 
-    for(int i=3; i<shape.num_points*3; i+=3){
-        vec3 v = vec3(shape.points[i], shape.points[i+1], shape.points[i+2]);
-        float d = dot(v, dir);
-        if(d>max_dot){
-            max_dot = d;
-            furthest_point = v;
+        vec3 furthest_point = vec3(points[0], points[1], points[2]);
+        float max_dot = dot(furthest_point, dir);
+
+        for(int i=3; i<num_points*3; i+=3){
+            vec3 v = vec3(points[i], points[i+1], points[i+2]);
+            float d = dot(v, dir);
+            if(d>max_dot){
+                max_dot = d;
+                furthest_point = v;
+            }
         }
+        vec3 final = matRS*furthest_point + pos;
+        return final;
     }
-    vec3 final = shape.matRS*furthest_point + shape.pos;
-    //printf("Support: ");
-    //print(final);
-    return final;
-}
+};
 
-bool gjk(Collider coll1, Collider coll2, vec3* mtv){
+bool gjk(Collider* coll1, Collider* coll2, vec3* mtv){
     vec3 a, b, c, d; //Simplex: just a set of points (a is always most recently added)
-    vec3 search_dir = coll1.pos - coll2.pos; //initial search direction between colliders
+    vec3 search_dir = coll1->pos - coll2->pos; //initial search direction between colliders
 
     //Get initial point for simplex
-    c = support(coll2, search_dir) - support(coll1, -search_dir);
+    c = coll2->support(search_dir) - coll1->support(-search_dir);
     search_dir = -c; //search in direction of origin
 
     //Get second point for a line segment simplex
-    b = support(coll2, search_dir) - support(coll1, -search_dir);
+    b = coll2->support(search_dir) - coll1->support(-search_dir);
 
     if(dot(b, search_dir)<0) {
         //printf("GJK No collision (search didn't reach origin). Exited before loop\n");
@@ -85,7 +89,7 @@ bool gjk(Collider coll1, Collider coll2, vec3* mtv){
         //printf("Search direction: ");
         // print(search_dir);
 
-        a = support(coll2, search_dir) - support(coll1, -search_dir);
+        a = coll2->support(search_dir) - coll1->support(-search_dir);
         if(dot(a, search_dir)<0) {
             //printf("GJK No collision (search didn't reach origin). Iterations: %d\n", iterations);
             return false; //we didn't reach the origin, won't enclose it
@@ -218,7 +222,7 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &simp_dim, vec3 &se
 #define EPA_TOLERANCE 0.0001
 #define EPA_MAX_NUM_FACES 256
 #define EPA_MAX_NUM_LOOSE_EDGES 128
-vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
+vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
     vec3 faces[EPA_MAX_NUM_FACES][4]; //Array of faces, each with 3 verts and a normal
     
     //Init with final simplex from GJK
@@ -269,7 +273,7 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider coll1, Collider coll2){
         // printf("Search dir: :");
         // print(search_dir);
         
-        p = support(coll2, search_dir) - support(coll1, -search_dir);
+        p = coll2->support(search_dir) - coll1->support(-search_dir);
         // printf("New point: ");
         // print(p);
 
