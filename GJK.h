@@ -35,12 +35,28 @@ struct Collider{
     virtual vec3 support(vec3 dir) = 0;
 };
 
+//BBox: AABB + Orientation matrix
+struct BBox : Collider {
+    vec3 min, max; //Assume these are axis aligned!
+
+    vec3 support(vec3 dir){
+        dir = matRS_inverse*dir; //find support in model space
+
+        vec3 result;
+        result.x = (dot(dir,vec3(1,0,0))>0) ? max.x : min.x;
+        result.y = (dot(dir,vec3(0,1,0))>0) ? max.y : min.y;
+        result.z = (dot(dir,vec3(0,0,1))>0) ? max.z : min.z;
+
+        return matRS*result + pos; //convert support to world space
+    }
+};
+
 //Polytope: Just a convex set of points
 struct Polytope : Collider {
 	float   *points;    //(x0 y0 z0 x1 y1 z1 etc)
 	int     num_points;
 
-    //Dumb O(n) support function, just check all points
+    //Dumb O(n) support function, just brute force check all points
     vec3 support(vec3 dir){
         dir = matRS_inverse*dir;
 
@@ -55,8 +71,8 @@ struct Polytope : Collider {
                 furthest_point = v;
             }
         }
-        vec3 final = matRS*furthest_point + pos;
-        return final;
+        vec3 result = matRS*furthest_point + pos; //convert support to world space
+        return result;
     }
 };
 
@@ -71,43 +87,32 @@ bool gjk(Collider* coll1, Collider* coll2, vec3* mtv){
     //Get second point for a line segment simplex
     b = coll2->support(search_dir) - coll1->support(-search_dir);
 
-    if(dot(b, search_dir)<0) {
-        //printf("GJK No collision (search didn't reach origin). Exited before loop\n");
-        return false; //we didn't reach the origin, won't enclose it
-    }
+    if(dot(b, search_dir)<0) { return false; }//we didn't reach the origin, won't enclose it
 
-    search_dir = cross(cross(c-b,-b),c-b); //search normal to line segment towards origin
-    if(search_dir==vec3(0,0,0)){
-        //origin is on this line segment
+    search_dir = cross(cross(c-b,-b),c-b); //search perpendicular to line segment towards origin
+    if(search_dir==vec3(0,0,0)){ //origin is on this line segment
         //Apparently any normal search vector will do?
         search_dir = cross(c-b, vec3(1,0,0)); //normal with x-axis
         if(search_dir==vec3(0,0,0)) search_dir = cross(c-b, vec3(0,0,-1)); //normal with z-axis
     }
     int simp_dim = 2; //simplex dimension
     
-    for(int iterations=0; iterations<64; iterations++){
-        //printf("Search direction: ");
-        // print(search_dir);
-
+    for(int iterations=0; iterations<64; iterations++)
+    {
         a = coll2->support(search_dir) - coll1->support(-search_dir);
-        if(dot(a, search_dir)<0) {
-            //printf("GJK No collision (search didn't reach origin). Iterations: %d\n", iterations);
-            return false; //we didn't reach the origin, won't enclose it
-        }
+        if(dot(a, search_dir)<0) { return false; }//we didn't reach the origin, won't enclose it
+    
         simp_dim++;
-
         if(simp_dim==3){
             update_simplex3(a,b,c,d,simp_dim,search_dir);
         }
         else if(update_simplex4(a,b,c,d,simp_dim,search_dir)) {
-            //printf("GJK Collision. Iterations: %d\n", iterations);
             *mtv = EPA(a,b,c,d,coll1,coll2);
             printf("Minimum translation vector:\n");
             print(*mtv);
             return true;
         }
     }//endfor
-    //printf("GJK No collision. Ran out of iterations\n");
     return false;
 }
 

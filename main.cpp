@@ -36,16 +36,16 @@ int main() {
 	free(vp);
 
 	//Collision mesh for GJK
-	float box_points[] = {
-		-0.5f, -0.5f, -0.5f,
-		0.5f, -0.5f, -0.5f,
-		-0.5f, -0.5f, 0.5f,
-		0.5f, -0.5f, 0.5f,
-		-0.5f, 0.5f, -0.5f,
-		0.5f, 0.5f, -0.5f,
-		-0.5f, 0.5f, 0.5f,
-		0.5f, 0.5f, 0.5f
-	};
+	// float box_points[] = {
+	// 	-0.5f, -0.5f, -0.5f,
+	// 	0.5f, -0.5f, -0.5f,
+	// 	-0.5f, -0.5f, 0.5f,
+	// 	0.5f, -0.5f, 0.5f,
+	// 	-0.5f, 0.5f, -0.5f,
+	// 	0.5f, 0.5f, -0.5f,
+	// 	-0.5f, 0.5f, 0.5f,
+	// 	0.5f, 0.5f, 0.5f
+	// };
 
 	mat4 box_M[5];
 	box_M[0] = translate(rotate_y_deg(identity_mat4(), 45), vec3(-1.5f, 0, -1.5f));
@@ -55,15 +55,17 @@ int main() {
 	box_M[4] = translate(identity_mat4(), vec3(1.5f, 0, 1.5f));
 	vec4 box_colour[5];
 
-	Polytope box_collider[5];
+	BBox box_collider[5];
 	box_collider[0].pos = vec3(-1.5f, 0, -1.5f);
 	box_collider[1].pos = vec3(-1.5f, 0, 1.5f);
 	box_collider[2].pos = vec3(0, 0, 0);
 	box_collider[3].pos = vec3(1.5f, 0, -1.5f);
 	box_collider[4].pos = vec3(1.5f, 0, 1.5f);
 	for(int i=0; i<5; i++){
-		box_collider[i].points = box_points;
-		box_collider[i].num_points = 8;
+		// box_collider[i].points = box_points;
+		// box_collider[i].num_points = 8;
+		box_collider[i].min = vec3(-0.5,-0.5,-0.5);
+		box_collider[i].max = vec3( 0.5, 0.5, 0.5);
 		box_collider[i].matRS = box_M[i];
 		box_collider[i].matRS_inverse = inverse(box_M[i]);
 		box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
@@ -74,10 +76,12 @@ int main() {
 	vec4 player_colour = vec4(0.1f, 0.8f, 0.3f, 1.0f);
 	float player_speed = 10;
 
-	Polytope player_collider;
+	BBox player_collider;
 	player_collider.pos = player_pos;
-	player_collider.points = box_points;
-	player_collider.num_points = 8;
+	//player_collider.points = box_points;
+	//player_collider.num_points = 8;
+	player_collider.min = vec3(-0.5,-0.5,-0.5);
+	player_collider.max = vec3( 0.5, 0.5, 0.5);
 	player_collider.matRS = identity_mat4();
 	player_collider.matRS_inverse = identity_mat4();
 
