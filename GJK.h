@@ -292,13 +292,18 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
         int num_loose_edges = 0;
 
         //Find all triangles that are facing p
-        for(int i=0; i<num_faces; i++){
-            if(dot(faces[i][3], p)>0){ //triangle i faces p, remove it
-                //Update list of loose edges
-                for(int j=0; j<3; j++){ //Three edges per face
+        for(int i=0; i<num_faces; i++)
+        {
+            if(dot(faces[i][3], p)>0) //triangle i faces p, remove it
+            {
+                //Add removed triangle's edges to loose edge list.
+                //If it's already there, remove it (both triangles it belonged to are gone)
+                for(int j=0; j<3; j++) //Three edges per face
+                {
                     vec3 current_edge[2] = {faces[i][j], faces[i][(j+1)%3]};
                     bool found_edge = false;
-                    for(int k=0; k<num_loose_edges; k++){ //Check if current edge is already in list
+                    for(int k=0; k<num_loose_edges; k++) //Check if current edge is already in list
+                    {
                         if(loose_edges[k][1]==current_edge[0] && loose_edges[k][0]==current_edge[1]){
                             //Edge is already in the list, remove it
                             //THIS ASSUMES EDGE CAN ONLY BE SHARED BY 2 TRIANGLES (which should be true)
