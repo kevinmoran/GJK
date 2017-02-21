@@ -173,25 +173,24 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &simp_dim, vec3 &se
 
     //Plane-test origin with 3 faces
     /*
-    // Note: Kind of primitive approach used here; If origin is in front of a face, just use it as the new 
-    // simplex. I figured we should use its normal as the new search direction, but this behaves weirdly, needs investigation.
-    // We just go through the faces sequentially and exit at the first one which satisfies dot product. Not sure this is optimal or 
-    // if the edges or vertices should be considered as possible simplices? Thinking this through in my head I feel like this 
-    //method is good enough. Makes no difference for AABBS, should test with more complex colliders.
+    // Note: Kind of primitive approach used here; If origin is in front of a face, just use it as the new simplex.
+    // We just go through the faces sequentially and exit at the first one which satisfies dot product. Not sure this 
+    // is optimal or if edges should be considered as possible simplices? Thinking this through in my head I feel like 
+    // this method is good enough. Makes no difference for AABBS, should test with more complex colliders.
     */
     if(dot(ABC, AO)>0){
     	//In front of ABC
     	d = c;
     	c = b;
     	b = a;
-        //search_dir = ABC;
+        search_dir = ABC;
         //update_simplex3(a,b,c,d,simp_dim,search_dir);
     	return false;
     }
     if(dot(ACD, AO)>0){
     	//In front of ACD
     	b = a;
-        //search_dir = ABC;
+        search_dir = ACD;
         //update_simplex3(a,b,c,d,simp_dim,search_dir);
     	return false;
     }
@@ -200,7 +199,7 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &simp_dim, vec3 &se
     	c = d;
     	d = b;
     	b = a;
-        //search_dir = ABC;
+        search_dir = ADB;
         //update_simplex3(a,b,c,d,simp_dim,search_dir);
     	return false;
     }
