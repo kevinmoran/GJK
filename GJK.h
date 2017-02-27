@@ -76,6 +76,8 @@ struct Polytope : Collider {
     }
 };
 
+#define GJK_MAX_NUM_ITERATIONS 64
+
 bool gjk(Collider* coll1, Collider* coll2, vec3* mtv){
     vec3 a, b, c, d; //Simplex: just a set of points (a is always most recently added)
     vec3 search_dir = coll1->pos - coll2->pos; //initial search direction between colliders
@@ -97,7 +99,7 @@ bool gjk(Collider* coll1, Collider* coll2, vec3* mtv){
     }
     int simp_dim = 2; //simplex dimension
     
-    for(int iterations=0; iterations<64; iterations++)
+    for(int iterations=0; iterations<GJK_MAX_NUM_ITERATIONS; iterations++)
     {
         a = coll2->support(search_dir) - coll1->support(-search_dir);
         if(dot(a, search_dir)<0) { return false; }//we didn't reach the origin, won't enclose it
@@ -108,8 +110,6 @@ bool gjk(Collider* coll1, Collider* coll2, vec3* mtv){
         }
         else if(update_simplex4(a,b,c,d,simp_dim,search_dir)) {
             *mtv = EPA(a,b,c,d,coll1,coll2);
-            printf("Minimum translation vector:\n");
-            print(*mtv);
             return true;
         }
     }//endfor
@@ -130,27 +130,24 @@ void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &simp_dim, vec3 &se
     vec3 n = cross(b-a, c-a); //triangle's normal
     vec3 AO = -a; //direction to origin
 
-    //Determine which facet is closest to origin, make that new simplex
+    //Determine which feature is closest to origin, make that the new simplex
 
-    simp_dim = 2; //hoisting this just cause
-    //Closest to edge AB
-    if(dot(cross(b-a, n), AO)>0){
+    simp_dim = 2;
+    if(dot(cross(b-a, n), AO)>0){ //Closest to edge AB
         c = a;
         //simp_dim = 2;
         search_dir = cross(cross(b-a, AO), b-a);
         return;
     }
-    //Closest to edge AC
-    if(dot(cross(n, c-a), AO)>0){
+    if(dot(cross(n, c-a), AO)>0){ //Closest to edge AC
         b = a;
         //simp_dim = 2;
         search_dir = cross(cross(c-a, AO), c-a);
         return;
     }
     
-    simp_dim = 3; //hoisting this just cause
-    //Above triangle
-    if(dot(n, AO)>0){
+    simp_dim = 3;
+    if(dot(n, AO)>0){ //Above triangle
         d = c;
         c = b;
         b = a;
@@ -158,8 +155,7 @@ void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &simp_dim, vec3 &se
         search_dir = n;
         return;
     }
-    //else
-    //Below triangle
+    //else //Below triangle
     d = b;
     b = a;
     //simp_dim = 3;
@@ -187,29 +183,23 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &simp_dim, vec3 &se
     // is optimal or if edges should be considered as possible simplices? Thinking this through in my head I feel like 
     // this method is good enough. Makes no difference for AABBS, should test with more complex colliders.
     */
-    if(dot(ABC, AO)>0){
-    	//In front of ABC
+    if(dot(ABC, AO)>0){ //In front of ABC
     	d = c;
     	c = b;
     	b = a;
         search_dir = ABC;
-        //update_simplex3(a,b,c,d,simp_dim,search_dir);
     	return false;
     }
-    if(dot(ACD, AO)>0){
-    	//In front of ACD
+    if(dot(ACD, AO)>0){ //In front of ACD
     	b = a;
         search_dir = ACD;
-        //update_simplex3(a,b,c,d,simp_dim,search_dir);
     	return false;
     }
-    if(dot(ADB, AO)>0){
-    	//In front of ADB
+    if(dot(ADB, AO)>0){ //In front of ADB
     	c = d;
     	d = b;
     	b = a;
         search_dir = ADB;
-        //update_simplex3(a,b,c,d,simp_dim,search_dir);
     	return false;
     }
 
@@ -248,15 +238,6 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
     faces[3][1] = d;
     faces[3][2] = c;
     faces[3][3] = normalise(cross(d-b, c-b)); //BDC
-    // printf("\nStarted EPA\n");
-    // printf("a: ");
-    // print(a);
-    // printf("b: ");
-    // print(b);
-    // printf("c: ");
-    // print(c);
-    // printf("d: ");
-    // print(d);
 
     int num_faces=4;
     vec3 p; //new point used to expand polytope
@@ -272,24 +253,17 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
                 closest_face = i;
             }
         }
-        // printf("min dist: %f\n", min_dist);
 
         //search normal to face that's closest to origin
         vec3 search_dir = faces[closest_face][3]; 
-        // printf("Search dir: :");
-        // print(search_dir);
-        
         p = coll2->support(search_dir) - coll1->support(-search_dir);
-        // printf("New point: ");
-        // print(p);
 
         if(dot(p, search_dir)-min_dist<EPA_TOLERANCE){
             //Convergence (new point is not significantly further from origin)
-            printf("EPA converged with %d faces\n", num_faces);
             return faces[closest_face][3]*dot(p, search_dir); //dot vertex with normal to resolve collision along normal!
         }
 
-        vec3 loose_edges[EPA_MAX_NUM_LOOSE_EDGES][2]; //keep track of edges we need to fix
+        vec3 loose_edges[EPA_MAX_NUM_LOOSE_EDGES][2]; //keep track of edges we need to fix after removing faces
         int num_loose_edges = 0;
 
         //Find all triangles that are facing p
@@ -335,7 +309,6 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
                 i--;
             }//endif p can see triangle i
         }//endfor num_faces
-        printf("Num loose edges: %d\n", num_loose_edges);
         
         //Reconstruct polytope with p added
         for(int i=0; i<num_loose_edges; i++)
