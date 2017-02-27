@@ -294,7 +294,7 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
         //Find all triangles that are facing p
         for(int i=0; i<num_faces; i++)
         {
-            if(dot(faces[i][3], p)>0) //triangle i faces p, remove it
+            if(dot(faces[i][3], p-faces[i][0] )>0) //triangle i faces p, remove it
             {
                 //Add removed triangle's edges to loose edge list.
                 //If it's already there, remove it (both triangles it belonged to are gone)
