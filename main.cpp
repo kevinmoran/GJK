@@ -71,7 +71,7 @@ int main() {
 		box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
 	}
 
-	vec3 player_pos = vec3(0,0,2.5f); //vec3(-1.0f,0,-1.5f); //this is a broken case, fix!
+	vec3 player_pos = vec3(0,0,2.5f); 
 	mat4 player_M = translate(identity_mat4(), player_pos);
 	vec4 player_colour = vec4(0.1f, 0.8f, 0.3f, 1.0f);
 	float player_speed = 10;

@@ -225,8 +225,9 @@ bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &simp_dim, vec3 &se
 //Expanding Polytope Algorithm
 //Find minimum translation vector to resolve collision
 #define EPA_TOLERANCE 0.0001
-#define EPA_MAX_NUM_FACES 256
-#define EPA_MAX_NUM_LOOSE_EDGES 128
+#define EPA_MAX_NUM_FACES 32
+#define EPA_MAX_NUM_LOOSE_EDGES 32
+#define EPA_MAX_NUM_ITERATIONS 64
 vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
     vec3 faces[EPA_MAX_NUM_FACES][4]; //Array of faces, each with 3 verts and a normal
     
@@ -260,7 +261,7 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
     int num_faces=4;
     vec3 p; //new point used to expand polytope
     
-    while(num_faces<EPA_MAX_NUM_FACES){
+    for(int iterations=0; iterations<EPA_MAX_NUM_ITERATIONS; iterations++){
         //Find face that's closest to origin
         float min_dist = dot(faces[0][0], faces[0][3]);
         int closest_face = 0;
@@ -337,7 +338,8 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
         printf("Num loose edges: %d\n", num_loose_edges);
         
         //Reconstruct polytope with p added
-        for(int i=0; i<num_loose_edges; i++){
+        for(int i=0; i<num_loose_edges; i++)
+        {
             assert(num_faces<EPA_MAX_NUM_FACES);
             faces[num_faces][0] = loose_edges[i][0];
             faces[num_faces][1] = loose_edges[i][1];
@@ -345,7 +347,8 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
             faces[num_faces][3] = normalise(cross(loose_edges[i][0]-loose_edges[i][1], loose_edges[i][0]-p));
 
             //Check for wrong normal to maintain CCW winding
-            if(dot(faces[num_faces][0], faces[num_faces][3])<0){
+            float bias = 0.000001; //in case dot result is only slightly < 0 (because origin is on face)
+            if(dot(faces[num_faces][0], faces[num_faces][3])+bias < 0){
                 vec3 temp = faces[num_faces][0];
                 faces[num_faces][0] = faces[num_faces][1];
                 faces[num_faces][1] = temp;
@@ -353,7 +356,7 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
             }
             num_faces++;
         }
-    }
+    } //End for iterations
     printf("EPA did not converge\n");
-    return p;
+    return vec3(0,0,0); //no idea what's a sensible value to return in this case
 }
