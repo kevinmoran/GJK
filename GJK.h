@@ -3,6 +3,7 @@
 #include "Collider.h"
 
 //Kevin's implementation of the Gilbert-Johnson-Keerthi intersection algorithm
+//and the Expanding Polytope Algorithm
 //Most useful references (Huge thanks to all the authors):
 
 // "Implementing GJK" by Casey Muratori:
@@ -20,10 +21,16 @@
 // "GJK + Expanding Polytope Algorithm - Implementation and Visualization"
 // Good breakdown of EPA with demo for visualisation
 // https://www.youtube.com/watch?v=6rgiPrzqt9w
+//-----------------------------------------------------------------------------
 
-bool gjk(Collider* coll1, Collider* coll2, vec3* mtv);
+//Returns true if two colliders are intersecting. Has optional Minimum Translation Vector output param;
+//If supplied the EPA will be used to find the vector to separate coll1 from coll2
+bool gjk(Collider* coll1, Collider* coll2, vec3* mtv=NULL);
+//Internal functions used in the GJK algorithm
 void update_simplex3(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &simp_dim, vec3 &search_dir);
 bool update_simplex4(vec3 &a, vec3 &b, vec3 &c, vec3 &d, int &simp_dim, vec3 &search_dir);
+//Expanding Polytope Algorithm. Used to find the mtv of two intersecting 
+//colliders using the final simplex obtained with the GJK algorithm
 vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2);
 
 #define GJK_MAX_NUM_ITERATIONS 64
@@ -59,7 +66,7 @@ bool gjk(Collider* coll1, Collider* coll2, vec3* mtv){
             update_simplex3(a,b,c,d,simp_dim,search_dir);
         }
         else if(update_simplex4(a,b,c,d,simp_dim,search_dir)) {
-            *mtv = EPA(a,b,c,d,coll1,coll2);
+            if(mtv) *mtv = EPA(a,b,c,d,coll1,coll2);
             return true;
         }
     }//endfor
