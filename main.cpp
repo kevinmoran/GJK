@@ -209,6 +209,7 @@ int main() {
 				glDepthFunc(GL_ALWAYS);
 				glUniform4fv(colour_loc, 1, vec4(0,0,0,1).v);
 				glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, 0);
+				glDepthFunc(GL_LESS);
 			}
 		}
 
