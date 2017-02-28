@@ -141,16 +141,19 @@ int main() {
 			glfwSetWindowShouldClose(window, 1);
 		}
 
-		static bool camera_enabled = false;
+		static bool freecam_mode = false;
 		static bool F_was_pressed = false;
 		if (glfwGetKey(window, GLFW_KEY_F)) {
-			if(!F_was_pressed) { camera_enabled = !camera_enabled; }
+			if(!F_was_pressed) { freecam_mode = !freecam_mode; }
 			F_was_pressed = true;
 		}
 		else F_was_pressed = false;
 
-		if(camera_enabled) g_camera.update(dt);
-		else player_update(dt);
+		if(freecam_mode) 
+			g_camera.update_debug(dt);
+		else {
+			player_update(dt);
+		}
 
 		//do collision detection
 		{
@@ -184,6 +187,9 @@ int main() {
 				}
 			}
 		}
+
+		if(!freecam_mode) 
+			g_camera.update_player(player_pos, dt);
 
 		static bool draw_wireframe = true;
 		static bool slash_was_pressed = false;

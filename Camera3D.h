@@ -14,7 +14,8 @@ struct Camera3D {
     void init();
     void init(vec3 cam_pos);
     void init(vec3 cam_pos, vec3 target_pos);
-    void update(double dt);
+    void update_debug(double dt);
+    void update_player(vec3 player_pos, double dt);
 };
 Camera3D g_camera;
 
@@ -63,7 +64,7 @@ void Camera3D::init(vec3 cam_pos, vec3 target_pos){
     if(cam_mouse_controls) glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); 
 }
 
-void Camera3D::update(double dt){
+void Camera3D::update_debug(double dt){
     //WASD Movement (constrained to the x-z plane)
     if(g_input[MOVE_FORWARD]) {
         vec3 xz_proj = normalise(vec3(fwd.x, 0, fwd.z));
@@ -109,14 +110,50 @@ void Camera3D::update(double dt){
     }
     //Update matrices
     pitch = MIN(MAX(pitch, -89), 80); //Clamp pitch 
-    V = translate(identity_mat4(), pos*(-1));
     mat4 R = rotate_x_deg(rotate_y_deg(identity_mat4(), -yaw), -pitch); //how does this work? 
     //Surely rotating by the yaw will misalign the x-axis for the pitch rotation and screw this up?
     //Seems to work for now! ¯\_(ツ)_/¯
-    V = R*V;
     rgt = inverse(R)*vec4(1,0,0,0); //I guess it makes sense that you have to invert
     up  = inverse(R)*vec4(0,1,0,0);  //R to calculate these??? I don't know anymore
     fwd = inverse(R)*vec4(0,0,-1,0);
+
+    V = translate(identity_mat4(), pos*(-1));
+    V = R*V;
+}
+
+void Camera3D::update_player(vec3 player_pos, double dt){
+    //Rotation
+    if(!cam_mouse_controls){
+        if(g_input[TURN_CAM_LEFT]) {
+            yaw += turn_speed*dt;			
+        }
+        if(g_input[TURN_CAM_RIGHT]) {
+            yaw -= turn_speed*dt;			
+        }
+        if(g_input[TILT_CAM_UP]) {
+            pitch += turn_speed*dt;			
+        }
+        if(g_input[TILT_CAM_DOWN]) {
+            pitch -= turn_speed*dt;			
+        }
+    }
+    else {
+        yaw   += (g_mouse.prev_xpos-g_mouse.xpos) * g_mouse.sensitivity * turn_speed*dt;
+        pitch += (g_mouse.prev_ypos-g_mouse.ypos) * g_mouse.sensitivity * turn_speed*dt;
+    }
+    //Update matrices
+    pitch = MIN(MAX(pitch, -89), 80); //Clamp pitch 
+    mat4 R = rotate_x_deg(rotate_y_deg(identity_mat4(), -yaw), -pitch); //how does this work? 
+    //Surely rotating by the yaw will misalign the x-axis for the pitch rotation and screw this up?
+    //Seems to work for now! ¯\_(ツ)_/¯
+    rgt = inverse(R)*vec4(1,0,0,0); //I guess it makes sense that you have to invert
+    up  = inverse(R)*vec4(0,1,0,0);  //R to calculate these??? I don't know anymore
+    fwd = inverse(R)*vec4(0,0,-1,0);
+
+    pos = player_pos-fwd*5 + up*2;
+
+    V = translate(identity_mat4(), pos*(-1));
+    V = R*V;
 }
 
 void window_resize_callback(GLFWwindow* window, int width, int height){
