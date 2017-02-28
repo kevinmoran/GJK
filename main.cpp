@@ -216,11 +216,11 @@ int main() {
 				glDepthFunc(GL_ALWAYS);
 				glUniform4fv(colour_loc, 1, vec4(0,0,0,1).v);
 				glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, 0);
-				glDepthFunc(GL_LESS);
 			}
 		}
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glDepthFunc(GL_LESS);
 		glUniformMatrix4fv(box_shader.M_loc, 1, GL_FALSE, player_M.m);
 		glUniform4fv(colour_loc, 1, player_colour.v);
 		glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, 0);
