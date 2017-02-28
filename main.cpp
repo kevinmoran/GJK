@@ -165,13 +165,10 @@ int main() {
 				vec3 mtv(0,0,0); //minimum translation vector
 				if(gjk(&player_collider, &box_collider[i], &mtv)){
 					hit_something = true;
-					box_colour[i] = vec4(0.8f, 0.7f, 0.0f, 1);
 				}
-				else 
-					box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
 				
 				player_pos += mtv;
-				if(dot(mtv,vec3(0,1,0))>0.5 && !player_is_on_ground){
+				if(mtv.y>mtv.x && mtv.y>mtv.z && !player_is_on_ground){
 					player_vel.y = 0;
 					player_is_on_ground = true;
 					player_is_jumping = false;
