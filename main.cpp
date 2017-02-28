@@ -91,6 +91,7 @@ int main() {
 		}
 	}
 
+	//Set up player's physics collider
 	BBox player_collider;
 	player_collider.pos = player_pos;
 	player_collider.min = vec3(-0.5, 0,-0.5);
@@ -133,6 +134,8 @@ int main() {
 		// }
 
 		//Get Input
+		g_mouse.prev_xpos = g_mouse.xpos;
+    	g_mouse.prev_ypos = g_mouse.ypos;
 		glfwPollEvents();
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, 1);
