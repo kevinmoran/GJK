@@ -55,8 +55,7 @@ void player_update(double dt){
     // but have velocity in that direction, if so slows us down faster w/ subtraction
     // This improves responsiveness and tightens up the feel of moving
     // Mult by friction_factor is good to kill speed when idle but feels drifty while moving
-        
-    static bool jump_button_was_pressed = false;
+    
     if(player_is_on_ground){
         //Clamp player speed
         if(length2(player_vel) > player_top_speed*player_top_speed) {
@@ -68,6 +67,7 @@ void player_update(double dt){
         if(!player_moved) 
         player_vel = player_vel*friction_factor;
 
+        static bool jump_button_was_pressed = false;
         if(g_input[JUMP]){
             if(!jump_button_was_pressed){
                 player_vel.y += jump_vel;
