@@ -72,7 +72,7 @@ int main() {
 		box_M[0] = translate(rotate_y_deg(scale(identity_mat4(),box_scale[0]), 45), box_pos[0]);
 		box_M[1] = translate(scale(identity_mat4(),box_scale[1]), box_pos[1]);
 		box_M[2] = translate(scale(identity_mat4(),box_scale[2]), box_pos[2]);
-		box_M[3] = translate(scale(identity_mat4(),box_scale[3]), box_pos[3]);
+		box_M[3] = translate(rotate_x_deg(scale(identity_mat4(),box_scale[3]), 25), box_pos[3]);
 		box_M[4] = translate(scale(identity_mat4(),box_scale[4]), box_pos[4]);
 	
 		//Set up physics objects
