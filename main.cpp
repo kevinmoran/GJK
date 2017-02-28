@@ -49,11 +49,12 @@ int main() {
 	}
 
 	//Set up level geometry
-	mat4 box_M[5];
-	vec4 box_colour[5];
-	BBox box_collider[5];
+	#define NUM_BOXES 5
+	mat4 box_M[NUM_BOXES];
+	vec4 box_colour[NUM_BOXES];
+	BBox box_collider[NUM_BOXES];
 	{
-		const vec3 box_pos[5] = {
+		const vec3 box_pos[NUM_BOXES] = {
 			vec3(-6, 0,-6),
 			vec3(-6, 0, 6),
 			vec3( 0, 0, 0),
@@ -61,7 +62,7 @@ int main() {
 			vec3( 6, 0, 6)
 		};
 
-		const vec3 box_scale[5] = {
+		const vec3 box_scale[NUM_BOXES] = {
 			vec3(5.0f, 2.0f, 5.0f),
 			vec3(5.0f, 1.0f, 5.0f),
 			vec3(5.0f, 1.0f, 5.0f),
@@ -81,7 +82,7 @@ int main() {
 		box_collider[2].pos = box_pos[2];
 		box_collider[3].pos = box_pos[3];
 		box_collider[4].pos = box_pos[4];
-		for(int i=0; i<5; i++)
+		for(int i=0; i<NUM_BOXES; i++)
 		{
 			box_collider[i].min = vec3(-0.5, 0,-0.5);
 			box_collider[i].max = vec3( 0.5, 1, 0.5);
@@ -159,7 +160,7 @@ int main() {
 		{
 			player_collider.pos = player_pos;
 			bool hit_something = false;
-			for(int i=0; i<5; i++)
+			for(int i=0; i<NUM_BOXES; i++)
 			{
 				vec3 mtv(0,0,0); //minimum translation vector
 				if(gjk(&player_collider, &box_collider[i], &mtv)){
