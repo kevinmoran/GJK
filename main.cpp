@@ -15,71 +15,84 @@ float gl_aspect_ratio = (float)gl_width/gl_height;
 #include "Shader.h"
 #include "load_obj.h"
 #include "GJK.h"
+#include "Player.h"
 
 int main() {
 	if (!init_gl(window, "GJK", gl_width, gl_height)){ return 1; }
-	float* vp = NULL;
-	unsigned int point_count = 0;
-	load_obj("cube.obj", &vp, &point_count);
 
+	//Load cube mesh
 	GLuint vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-	
-	GLuint points_vbo;
-	glGenBuffers(1, &points_vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
-	glBufferData(GL_ARRAY_BUFFER, point_count*3*sizeof(float), vp, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(VP_ATTRIB_LOC);
-	glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
-	glVertexAttribPointer(VP_ATTRIB_LOC, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-	free(vp);
+	unsigned int index_count = 0;
+	{
+		float* vp = NULL;
+		uint16_t* indices = NULL;
+		unsigned int vert_count = 0;
+		load_obj_indexed("cube.obj", &vp, &indices, &vert_count, &index_count);
 
-	//Collision mesh for GJK
-	// float box_points[] = {
-	// 	-0.5f, -0.5f, -0.5f,
-	// 	0.5f, -0.5f, -0.5f,
-	// 	-0.5f, -0.5f, 0.5f,
-	// 	0.5f, -0.5f, 0.5f,
-	// 	-0.5f, 0.5f, -0.5f,
-	// 	0.5f, 0.5f, -0.5f,
-	// 	-0.5f, 0.5f, 0.5f,
-	// 	0.5f, 0.5f, 0.5f
-	// };
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
+		
+		GLuint points_vbo;
+		glGenBuffers(1, &points_vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
+		glBufferData(GL_ARRAY_BUFFER, vert_count*3*sizeof(float), vp, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(VP_ATTRIB_LOC);
+		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
+		glVertexAttribPointer(VP_ATTRIB_LOC, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		free(vp);
 
-	mat4 box_M[5];
-	box_M[0] = translate(rotate_y_deg(identity_mat4(), 45), vec3(-1.5f, 0, -1.5f));
-	box_M[1] = translate(identity_mat4(), vec3(-1.5f, 0, 1.5f));
-	box_M[2] = translate(identity_mat4(), vec3(0, 0, 0));
-	box_M[3] = translate(identity_mat4(), vec3(1.5f, 0, -1.5f));
-	box_M[4] = translate(identity_mat4(), vec3(1.5f, 0, 1.5f));
-	vec4 box_colour[5];
-
-	BBox box_collider[5];
-	box_collider[0].pos = vec3(-1.5f, 0, -1.5f);
-	box_collider[1].pos = vec3(-1.5f, 0, 1.5f);
-	box_collider[2].pos = vec3(0, 0, 0);
-	box_collider[3].pos = vec3(1.5f, 0, -1.5f);
-	box_collider[4].pos = vec3(1.5f, 0, 1.5f);
-	for(int i=0; i<5; i++){
-		// box_collider[i].points = box_points;
-		// box_collider[i].num_points = 8;
-		box_collider[i].min = vec3(-0.5,-0.5,-0.5);
-		box_collider[i].max = vec3( 0.5, 0.5, 0.5);
-		box_collider[i].matRS = box_M[i];
-		box_collider[i].matRS_inverse = inverse(box_M[i]);
-		box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
+		GLuint index_vbo;
+		glGenBuffers(1, &index_vbo);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_vbo);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_count*sizeof(unsigned short), indices, GL_STATIC_DRAW);
+		free(indices);
 	}
 
-	vec3 player_pos = vec3(0,0,2.5f); 
-	mat4 player_M = translate(identity_mat4(), player_pos);
-	vec4 player_colour = vec4(0.1f, 0.8f, 0.3f, 1.0f);
-	float player_speed = 10;
+	//Set up level geometry
+	mat4 box_M[5];
+	vec4 box_colour[5];
+	BBox box_collider[5];
+	{
+		const vec3 box_pos[5] = {
+			vec3(-6, 0,-6),
+			vec3(-6, 0, 6),
+			vec3( 0, 0, 0),
+			vec3( 6, 0,-6),
+			vec3( 6, 0, 6)
+		};
+
+		const vec3 box_scale[5] = {
+			vec3(5.0f, 2.0f, 5.0f),
+			vec3(5.0f, 1.0f, 5.0f),
+			vec3(5.0f, 1.0f, 5.0f),
+			vec3(5.0f, 4.f, 5.0f),
+			vec3(5.0f, 1.0f, 5.0f)
+		};
+
+		box_M[0] = translate(rotate_y_deg(scale(identity_mat4(),box_scale[0]), 45), box_pos[0]);
+		box_M[1] = translate(scale(identity_mat4(),box_scale[1]), box_pos[1]);
+		box_M[2] = translate(scale(identity_mat4(),box_scale[2]), box_pos[2]);
+		box_M[3] = translate(scale(identity_mat4(),box_scale[3]), box_pos[3]);
+		box_M[4] = translate(scale(identity_mat4(),box_scale[4]), box_pos[4]);
+	
+		//Set up physics objects
+		box_collider[0].pos = box_pos[0];
+		box_collider[1].pos = box_pos[1];
+		box_collider[2].pos = box_pos[2];
+		box_collider[3].pos = box_pos[3];
+		box_collider[4].pos = box_pos[4];
+		for(int i=0; i<5; i++)
+		{
+			box_collider[i].min = vec3(-0.5,-0.5,-0.5);
+			box_collider[i].max = vec3( 0.5, 0.5, 0.5);
+			box_collider[i].matRS = box_M[i];
+			box_collider[i].matRS_inverse = inverse(box_M[i]);
+			box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
+		}
+	}
 
 	BBox player_collider;
 	player_collider.pos = player_pos;
-	//player_collider.points = box_points;
-	//player_collider.num_points = 8;
 	player_collider.min = vec3(-0.5,-0.5,-0.5);
 	player_collider.max = vec3( 0.5, 0.5, 0.5);
 	player_collider.matRS = identity_mat4();
@@ -134,56 +147,72 @@ int main() {
 		else F_was_pressed = false;
 
 		if(camera_enabled) g_camera.update(dt);
-		else{
-			//Move player
-			if(g_input[MOVE_FORWARD]) {
-				vec3 xz_proj = normalise(vec3(g_camera.fwd.v[0], 0, g_camera.fwd.v[2]));
-				player_pos += xz_proj*player_speed*dt;
-			}
-			if(g_input[MOVE_LEFT]) {
-				vec3 xz_proj = normalise(vec3(g_camera.rgt.v[0], 0, g_camera.rgt.v[2]));
-				player_pos -= xz_proj*player_speed*dt;
-			}
-			if(g_input[MOVE_BACK]) {
-				vec3 xz_proj = normalise(vec3(g_camera.fwd.v[0], 0, g_camera.fwd.v[2]));
-				player_pos -= xz_proj*player_speed*dt;			
-			}
-			if(g_input[MOVE_RIGHT]) {
-				vec3 xz_proj = normalise(vec3(g_camera.rgt.v[0], 0, g_camera.rgt.v[2]));
-				player_pos += xz_proj*player_speed*dt;			
-			}
-			player_M = translate(identity_mat4(), player_pos);
-		}
+		else player_update(dt);
 
-		//if (glfwGetKey(window, GLFW_KEY_G)) {
+		//do collision detection
+		{
 			player_collider.pos = player_pos;
-			for(int i=0; i<5; i++){
+			bool hit_something = false;
+			for(int i=0; i<5; i++)
+			{
 				vec3 mtv(0,0,0); //minimum translation vector
-				Collider* p = &player_collider;
-				Collider* b = &box_collider[i];
-				if(gjk(p, b, &mtv)) 
+				if(gjk(&player_collider, &box_collider[i], &mtv)){
+					hit_something = true;
 					box_colour[i] = vec4(0.8f, 0.7f, 0.0f, 1);
+				}
 				else 
 					box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
 				
 				player_pos += mtv;
+				if(dot(mtv,vec3(0,1,0))>0.5 && !player_is_on_ground){
+					player_vel.y = 0;
+					player_is_on_ground = true;
+					player_is_jumping = false;
+				}
 				player_M = translate(identity_mat4(), player_pos);
 			}
-		//}
+			static float plat_fall_timer = 0;
+			const float plat_fall_time = 0.1;
+			if(!hit_something && player_pos.y>0){
+				plat_fall_timer += dt;
+				if(plat_fall_timer>plat_fall_time || length(player_vel)<player_top_speed/2){
+					plat_fall_timer = 0;
+					player_is_on_ground = false;
+				}
+			}
+		}
+
+		static bool draw_wireframe = true;
+		static bool slash_was_pressed = false;
+		if (glfwGetKey(window, GLFW_KEY_SLASH)) {
+			if(!slash_was_pressed) { draw_wireframe = !draw_wireframe; }
+			slash_was_pressed = true;
+		}
+		else slash_was_pressed = false;
 
 		//Rendering
 		glUseProgram(box_shader.id);
 		glBindVertexArray(vao);
 		glUniformMatrix4fv(box_shader.V_loc, 1, GL_FALSE, g_camera.V.m);
 		for(int i=0; i<5; i++){
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glDepthFunc(GL_LESS);
 			glUniform4fv(colour_loc, 1, box_colour[i].v);
 			glUniformMatrix4fv(box_shader.M_loc, 1, GL_FALSE, box_M[i].m);
-			glDrawArrays(GL_TRIANGLES, 0, point_count);
+			glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, 0);
+
+			if(draw_wireframe){
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+				glDepthFunc(GL_ALWAYS);
+				glUniform4fv(colour_loc, 1, vec4(0,0,0,1).v);
+				glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, 0);
+			}
 		}
 
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glUniformMatrix4fv(box_shader.M_loc, 1, GL_FALSE, player_M.m);
 		glUniform4fv(colour_loc, 1, player_colour.v);
-		glDrawArrays(GL_TRIANGLES, 0, point_count);
+		glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, 0);
 
 		check_gl_error();
 
