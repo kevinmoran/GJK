@@ -65,7 +65,7 @@ int main() {
 			vec3(5.0f, 2.0f, 5.0f),
 			vec3(5.0f, 1.0f, 5.0f),
 			vec3(5.0f, 1.0f, 5.0f),
-			vec3(5.0f, 4.f, 5.0f),
+			vec3(5.0f, 3.0f, 5.0f),
 			vec3(5.0f, 1.0f, 5.0f)
 		};
 
@@ -83,8 +83,8 @@ int main() {
 		box_collider[4].pos = box_pos[4];
 		for(int i=0; i<5; i++)
 		{
-			box_collider[i].min = vec3(-0.5,-0.5,-0.5);
-			box_collider[i].max = vec3( 0.5, 0.5, 0.5);
+			box_collider[i].min = vec3(-0.5, 0,-0.5);
+			box_collider[i].max = vec3( 0.5, 1, 0.5);
 			box_collider[i].matRS = box_M[i];
 			box_collider[i].matRS_inverse = inverse(box_M[i]);
 			box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
@@ -93,8 +93,8 @@ int main() {
 
 	BBox player_collider;
 	player_collider.pos = player_pos;
-	player_collider.min = vec3(-0.5,-0.5,-0.5);
-	player_collider.max = vec3( 0.5, 0.5, 0.5);
+	player_collider.min = vec3(-0.5, 0,-0.5);
+	player_collider.max = vec3( 0.5, 1, 0.5);
 	player_collider.matRS = identity_mat4();
 	player_collider.matRS_inverse = identity_mat4();
 
