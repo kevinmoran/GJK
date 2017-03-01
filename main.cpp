@@ -22,12 +22,12 @@ int main() {
 
 	//Load cube mesh
 	GLuint vao;
-	unsigned int index_count = 0;
+	unsigned int num_indices = 0;
 	{
 		float* vp = NULL;
 		uint16_t* indices = NULL;
-		unsigned int vert_count = 0;
-		load_obj_indexed("cube.obj", &vp, &indices, &vert_count, &index_count);
+		unsigned int num_verts = 0;
+		load_obj_indexed("cube.obj", &vp, &indices, &num_verts, &num_indices);
 
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
@@ -35,7 +35,7 @@ int main() {
 		GLuint points_vbo;
 		glGenBuffers(1, &points_vbo);
 		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
-		glBufferData(GL_ARRAY_BUFFER, vert_count*3*sizeof(float), vp, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, num_verts*3*sizeof(float), vp, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(VP_ATTRIB_LOC);
 		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
 		glVertexAttribPointer(VP_ATTRIB_LOC, 3, GL_FLOAT, GL_FALSE, 0, NULL);
@@ -44,7 +44,7 @@ int main() {
 		GLuint index_vbo;
 		glGenBuffers(1, &index_vbo);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_vbo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_count*sizeof(unsigned short), indices, GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, num_indices*sizeof(unsigned short), indices, GL_STATIC_DRAW);
 		free(indices);
 	}
 
@@ -206,13 +206,13 @@ int main() {
 			glDepthFunc(GL_LESS);
 			glUniform4fv(colour_loc, 1, box_colour[i].v);
 			glUniformMatrix4fv(box_shader.M_loc, 1, GL_FALSE, box_M[i].m);
-			glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, 0);
+			glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_SHORT, 0);
 
 			if(draw_wireframe){
 				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 				glDepthFunc(GL_ALWAYS);
 				glUniform4fv(colour_loc, 1, vec4(0,0,0,1).v);
-				glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, 0);
+				glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_SHORT, 0);
 			}
 		}
 
@@ -220,7 +220,7 @@ int main() {
 		glDepthFunc(GL_LESS);
 		glUniformMatrix4fv(box_shader.M_loc, 1, GL_FALSE, player_M.m);
 		glUniform4fv(colour_loc, 1, player_colour.v);
-		glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, 0);
+		glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_SHORT, 0);
 
 		check_gl_error();
 
