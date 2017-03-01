@@ -6,7 +6,7 @@
 bool init_gl(GLFWwindow* &window, const char* title, int window_width, int window_height) {
 
 	/* start GL context and O/S window using the GLFW helper library */
-	if (!glfwInit()) {
+	if(!glfwInit()) {
 		fprintf(stderr, "ERROR: could not start GLFW3\n");
 		getchar();
 		return false;
@@ -20,7 +20,7 @@ bool init_gl(GLFWwindow* &window, const char* title, int window_width, int windo
 	#endif
 	
 	window = glfwCreateWindow(window_width, window_height, "GJK", NULL, NULL);
-	if (!window) {
+	if(!window) {
 		fprintf(stderr, "ERROR: could not open window with GLFW3\n");
 		glfwTerminate();
 		getchar();
@@ -73,7 +73,7 @@ bool init_gl(GLFWwindow* &window, const char* title, int window_width, int windo
 
 static int _checkOglError(const char *file, int line){
     GLenum glErr = glGetError();
-    if (glErr != GL_NO_ERROR) {
+    if(glErr != GL_NO_ERROR) {
         printf("glError in file %s @ line %d:\n%d - ", file, line, glErr);
 		switch(glErr) {
 			case GL_INVALID_OPERATION:				printf("INVALID_OPERATION\n");				return 1;

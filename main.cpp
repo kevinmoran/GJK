@@ -18,7 +18,7 @@ float gl_aspect_ratio = (float)gl_width/gl_height;
 #include "Player.h"
 
 int main() {
-	if (!init_gl(window, "GJK", gl_width, gl_height)){ return 1; }
+	if(!init_gl(window, "GJK", gl_width, gl_height)){ return 1; }
 
 	//Load cube mesh
 	GLuint cube_vao;
@@ -183,7 +183,7 @@ int main() {
 			vec3( 0, 0,-6)
 		};
 		const float cylinder_r[NUM_CYLINDERS] = {
-			2, 3, 3
+			2, 1, 3
 		};
 		const float cylinder_h[NUM_CYLINDERS] = {
 			2, 3, 3
@@ -239,7 +239,7 @@ int main() {
 		prev_time = curr_time;
 		curr_time = glfwGetTime();
 		dt = curr_time - prev_time;
-		if (dt > 0.1) dt = 0.1;
+		if(dt > 0.1) dt = 0.1;
 
 		// static float fps_timer = 0.0f;
 		// fps_timer+=dt;
@@ -254,13 +254,13 @@ int main() {
 		g_mouse.prev_xpos = g_mouse.xpos;
     	g_mouse.prev_ypos = g_mouse.ypos;
 		glfwPollEvents();
-		if (glfwGetKey(window, GLFW_KEY_ESCAPE)) {
+		if(glfwGetKey(window, GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, 1);
 		}
 
 		static bool freecam_mode = false;
 		static bool F_was_pressed = false;
-		if (glfwGetKey(window, GLFW_KEY_F)) {
+		if(glfwGetKey(window, GLFW_KEY_F)) {
 			if(!F_was_pressed) { freecam_mode = !freecam_mode; }
 			F_was_pressed = true;
 		}
@@ -337,7 +337,7 @@ int main() {
 
 		static bool draw_wireframe = true;
 		static bool slash_was_pressed = false;
-		if (glfwGetKey(window, GLFW_KEY_SLASH)) {
+		if(glfwGetKey(window, GLFW_KEY_SLASH)) {
 			if(!slash_was_pressed) { draw_wireframe = !draw_wireframe; }
 			slash_was_pressed = true;
 		}
