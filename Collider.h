@@ -29,6 +29,30 @@ struct BBox : Collider {
     }
 };
 
+//Sphere: NB Does not use RS matrix, scale the radius directly!
+struct Sphere : Collider {
+    float r;
+
+    vec3 support(vec3 dir){
+        return normalise(dir)*r + pos;
+    }
+};
+
+//Cylinder: Height-aligned with y-axis (rotate using matRS)
+struct Cylinder : Collider {
+    float r, y_base, y_cap;
+
+    vec3 support(vec3 dir){
+        dir = matRS_inverse*dir; //find support in model space
+
+        vec3 dir_xz = vec3(dir.x, 0, dir.z);
+        vec3 result = normalise(dir_xz)*r;
+        result.y = (dir.y>0) ? y_cap : y_base;
+
+        return matRS*result + pos; //convert support to world space
+    }
+};
+
 //Polytope: Just a set of points
 struct Polytope : Collider {
 	float   *points;    //(x0 y0 z0 x1 y1 z1 etc)

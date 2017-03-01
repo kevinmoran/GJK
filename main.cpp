@@ -21,16 +21,16 @@ int main() {
 	if (!init_gl(window, "GJK", gl_width, gl_height)){ return 1; }
 
 	//Load cube mesh
-	GLuint vao;
-	unsigned int num_indices = 0;
+	GLuint cube_vao;
+	unsigned int cube_num_indices = 0;
 	{
 		float* vp = NULL;
 		uint16_t* indices = NULL;
 		unsigned int num_verts = 0;
-		load_obj_indexed("cube.obj", &vp, &indices, &num_verts, &num_indices);
+		load_obj_indexed("cube.obj", &vp, &indices, &num_verts, &cube_num_indices);
 
-		glGenVertexArrays(1, &vao);
-		glBindVertexArray(vao);
+		glGenVertexArrays(1, &cube_vao);
+		glBindVertexArray(cube_vao);
 		
 		GLuint points_vbo;
 		glGenBuffers(1, &points_vbo);
@@ -44,7 +44,61 @@ int main() {
 		GLuint index_vbo;
 		glGenBuffers(1, &index_vbo);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_vbo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, num_indices*sizeof(unsigned short), indices, GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, cube_num_indices*sizeof(unsigned short), indices, GL_STATIC_DRAW);
+		free(indices);
+	}
+	//Load sphere mesh
+	GLuint sphere_vao;
+	unsigned int sphere_num_indices = 0;
+	{
+		float* vp = NULL;
+		uint16_t* indices = NULL;
+		unsigned int num_verts = 0;
+		load_obj_indexed("sphere.obj", &vp, &indices, &num_verts, &sphere_num_indices);
+
+		glGenVertexArrays(1, &sphere_vao);
+		glBindVertexArray(sphere_vao);
+		
+		GLuint points_vbo;
+		glGenBuffers(1, &points_vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
+		glBufferData(GL_ARRAY_BUFFER, num_verts*3*sizeof(float), vp, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(VP_ATTRIB_LOC);
+		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
+		glVertexAttribPointer(VP_ATTRIB_LOC, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		free(vp);
+
+		GLuint index_vbo;
+		glGenBuffers(1, &index_vbo);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_vbo);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sphere_num_indices*sizeof(unsigned short), indices, GL_STATIC_DRAW);
+		free(indices);
+	}
+	//Load cube mesh
+	GLuint cylinder_vao;
+	unsigned int cylinder_num_indices = 0;
+	{
+		float* vp = NULL;
+		uint16_t* indices = NULL;
+		unsigned int num_verts = 0;
+		load_obj_indexed("cylinder.obj", &vp, &indices, &num_verts, &cylinder_num_indices);
+
+		glGenVertexArrays(1, &cylinder_vao);
+		glBindVertexArray(cylinder_vao);
+		
+		GLuint points_vbo;
+		glGenBuffers(1, &points_vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
+		glBufferData(GL_ARRAY_BUFFER, num_verts*3*sizeof(float), vp, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(VP_ATTRIB_LOC);
+		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
+		glVertexAttribPointer(VP_ATTRIB_LOC, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		free(vp);
+
+		GLuint index_vbo;
+		glGenBuffers(1, &index_vbo);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_vbo);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, cylinder_num_indices*sizeof(unsigned short), indices, GL_STATIC_DRAW);
 		free(indices);
 	}
 
@@ -91,6 +145,68 @@ int main() {
 			box_colour[i] = vec4(0.8f, 0.1f, 0.1f, 1);
 		}
 	}
+	#define NUM_SPHERES 3
+	mat4 sphere_M[NUM_SPHERES];
+	vec4 sphere_colour[NUM_SPHERES];
+	Sphere sphere_collider[NUM_SPHERES];
+	{
+		const vec3 sphere_pos[NUM_SPHERES] = {
+			vec3(-6, 3,-6),
+			vec3(-6, 2, 6),
+			vec3( 6, 5, -6)
+		};
+
+		sphere_M[0] = translate(identity_mat4(), sphere_pos[0]);
+		sphere_M[1] = translate(identity_mat4(), sphere_pos[1]);
+		sphere_M[2] = translate(identity_mat4(), sphere_pos[2]);
+	
+		//Set up physics objects
+		sphere_collider[0].pos = sphere_pos[0];
+		sphere_collider[1].pos = sphere_pos[1];
+		sphere_collider[2].pos = sphere_pos[2];
+		for(int i=0; i<NUM_SPHERES; i++)
+		{
+			sphere_collider[i].r = 1;
+			sphere_collider[i].matRS = sphere_M[i];
+			sphere_collider[i].matRS_inverse = inverse(sphere_M[i]);
+			sphere_colour[i] = vec4(0.1f, 0.8f, 0.1f, 1);
+		}
+	}
+	#define NUM_CYLINDERS 3
+	mat4 cylinder_M[NUM_CYLINDERS];
+	vec4 cylinder_colour[NUM_CYLINDERS];
+	Cylinder cylinder_collider[NUM_CYLINDERS];
+	{
+		const vec3 cylinder_pos[NUM_CYLINDERS] = {
+			vec3( 6, 0, 0),
+			vec3(-6, 0, 0),
+			vec3( 0, 0,-6)
+		};
+		const float cylinder_r[NUM_CYLINDERS] = {
+			2, 3, 3
+		};
+		const float cylinder_h[NUM_CYLINDERS] = {
+			2, 3, 3
+		};
+
+		cylinder_M[0] = translate(scale(identity_mat4(), vec3(cylinder_r[0], cylinder_h[0], cylinder_r[0])), cylinder_pos[0]);
+		cylinder_M[1] = translate(scale(identity_mat4(), vec3(cylinder_r[1], cylinder_h[1], cylinder_r[1])), cylinder_pos[1]);
+		cylinder_M[2] = translate(scale(identity_mat4(), vec3(cylinder_r[2], cylinder_h[2], cylinder_r[2])), cylinder_pos[2]);
+	
+		//Set up physics objects
+		cylinder_collider[0].pos = cylinder_pos[0];
+		cylinder_collider[1].pos = cylinder_pos[1];
+		cylinder_collider[2].pos = cylinder_pos[2];
+		for(int i=0; i<NUM_CYLINDERS; i++)
+		{
+			cylinder_collider[i].r = 1;
+			cylinder_collider[i].y_base = cylinder_pos[i].y;
+			cylinder_collider[i].y_cap = cylinder_pos[i].y + 1;
+			cylinder_collider[i].matRS = cylinder_M[i];
+			cylinder_collider[i].matRS_inverse = inverse(cylinder_M[i]);
+			cylinder_colour[i] = vec4(0.8f, 0.1f, 0.8f, 1);
+		}
+	}
 
 	//Set up player's physics collider
 	BBox player_collider;
@@ -104,11 +220,11 @@ int main() {
 	g_camera.init(vec3(0,3,6), vec3(0,0,0));
 
 	//Load shader
-	Shader box_shader = init_shader("MVP.vert", "uniform_colour.frag");
-	GLuint colour_loc = glGetUniformLocation(box_shader.id, "colour");
-	glUseProgram(box_shader.id);
-	glUniformMatrix4fv(box_shader.V_loc, 1, GL_FALSE, g_camera.V.m);
-	glUniformMatrix4fv(box_shader.P_loc, 1, GL_FALSE, g_camera.P.m);
+	Shader basic_shader = init_shader("MVP.vert", "uniform_colour.frag");
+	GLuint colour_loc = glGetUniformLocation(basic_shader.id, "colour");
+	glUseProgram(basic_shader.id);
+	glUniformMatrix4fv(basic_shader.V_loc, 1, GL_FALSE, g_camera.V.m);
+	glUniformMatrix4fv(basic_shader.P_loc, 1, GL_FALSE, g_camera.P.m);
 
 	check_gl_error();
 
@@ -160,6 +276,7 @@ int main() {
 		{
 			player_collider.pos = player_pos;
 			bool hit_something = false;
+			//BOXES
 			for(int i=0; i<NUM_BOXES; i++)
 			{
 				vec3 mtv(0,0,0); //minimum translation vector
@@ -173,6 +290,36 @@ int main() {
 					}
 				}
 				player_pos += mtv;
+
+				player_M = translate(identity_mat4(), player_pos);
+			}
+			//SPHERES
+			for(int i=0; i<NUM_SPHERES; i++)
+			{
+				if(gjk(&player_collider, &sphere_collider[i])){
+					sphere_colour[i] = vec4(0.8f,0.8f,0.1f,1);
+				}
+				cylinder_colour[i] = vec4(0.1f,0.8f,0.1f,1);
+				player_M = translate(identity_mat4(), player_pos);
+			}
+			//CYLINDERS
+			for(int i=0; i<NUM_CYLINDERS; i++)
+			{
+				vec3 mtv(0,0,0); //minimum translation vector
+				if(gjk(&player_collider, &cylinder_collider[i], &mtv)){
+				// if(gjk(&player_collider, &cylinder_collider[i])){
+					player_pos += mtv;
+					cylinder_colour[i] = vec4(0.8f,0.8f,0.1f,1);
+
+					hit_something = true;
+					float ground_slope = RAD2DEG(acos(dot(normalise(mtv), vec3(0,1,0))));
+					if(ground_slope<player_max_stand_slope){
+						player_vel.y = 0;
+						player_is_on_ground = true;
+						player_is_jumping = false;
+					}
+				}
+				else cylinder_colour[i] = vec4(0.8f,0.1f,0.8f,1);
 
 				player_M = translate(identity_mat4(), player_pos);
 			}
@@ -198,29 +345,57 @@ int main() {
 		else slash_was_pressed = false;
 
 		//Rendering
-		glUseProgram(box_shader.id);
-		glBindVertexArray(vao);
-		glUniformMatrix4fv(box_shader.V_loc, 1, GL_FALSE, g_camera.V.m);
-		for(int i=0; i<5; i++){
+		glUseProgram(basic_shader.id);
+		glUniformMatrix4fv(basic_shader.V_loc, 1, GL_FALSE, g_camera.V.m);
+
+		//Cubes
+		glBindVertexArray(cube_vao);
+		for(int i=0; i<NUM_BOXES; i++){
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			glDepthFunc(GL_LESS);
 			glUniform4fv(colour_loc, 1, box_colour[i].v);
-			glUniformMatrix4fv(box_shader.M_loc, 1, GL_FALSE, box_M[i].m);
-			glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_SHORT, 0);
+			glUniformMatrix4fv(basic_shader.M_loc, 1, GL_FALSE, box_M[i].m);
+			glDrawElements(GL_TRIANGLES, cube_num_indices, GL_UNSIGNED_SHORT, 0);
 
 			if(draw_wireframe){
 				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 				glDepthFunc(GL_ALWAYS);
 				glUniform4fv(colour_loc, 1, vec4(0,0,0,1).v);
-				glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_SHORT, 0);
+				glDrawElements(GL_TRIANGLES, cube_num_indices, GL_UNSIGNED_SHORT, 0);
 			}
 		}
+		//Spheres
+		glBindVertexArray(sphere_vao);
+		for(int i=0; i<NUM_SPHERES; i++){
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glDepthFunc(GL_LESS);
+			glUniform4fv(colour_loc, 1, sphere_colour[i].v);
+			glUniformMatrix4fv(basic_shader.M_loc, 1, GL_FALSE, sphere_M[i].m);
+			glDrawElements(GL_TRIANGLES, sphere_num_indices, GL_UNSIGNED_SHORT, 0);
+		}
+		//Cylinders
+		glBindVertexArray(cylinder_vao);
+		for(int i=0; i<NUM_CYLINDERS; i++){
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glDepthFunc(GL_LESS);
+			glUniform4fv(colour_loc, 1, cylinder_colour[i].v);
+			glUniformMatrix4fv(basic_shader.M_loc, 1, GL_FALSE, cylinder_M[i].m);
+			glDrawElements(GL_TRIANGLES, cylinder_num_indices, GL_UNSIGNED_SHORT, 0);
 
+			if(draw_wireframe){
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+				glDepthFunc(GL_ALWAYS);
+				glUniform4fv(colour_loc, 1, vec4(0,0,0,1).v);
+				glDrawElements(GL_TRIANGLES, cylinder_num_indices, GL_UNSIGNED_SHORT, 0);
+			}
+		}
+		//Player
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glDepthFunc(GL_LESS);
-		glUniformMatrix4fv(box_shader.M_loc, 1, GL_FALSE, player_M.m);
+		glUniformMatrix4fv(basic_shader.M_loc, 1, GL_FALSE, player_M.m);
 		glUniform4fv(colour_loc, 1, player_colour.v);
-		glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_SHORT, 0);
+		glBindVertexArray(cube_vao);
+		glDrawElements(GL_TRIANGLES, cube_num_indices, GL_UNSIGNED_SHORT, 0);
 
 		check_gl_error();
 
