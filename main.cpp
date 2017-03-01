@@ -73,8 +73,8 @@ int main() {
 		box_M[0] = translate(rotate_y_deg(scale(identity_mat4(),box_scale[0]), 45), box_pos[0]);
 		box_M[1] = translate(scale(identity_mat4(),box_scale[1]), box_pos[1]);
 		box_M[2] = translate(scale(identity_mat4(),box_scale[2]), box_pos[2]);
-		box_M[3] = translate(rotate_x_deg(scale(identity_mat4(),box_scale[3]), 25), box_pos[3]);
-		box_M[4] = translate(scale(identity_mat4(),box_scale[4]), box_pos[4]);
+		box_M[3] = translate(rotate_x_deg(scale(identity_mat4(),box_scale[3]), 40), box_pos[3]);
+		box_M[4] = translate(rotate_z_deg(scale(identity_mat4(),box_scale[4]), 50), box_pos[4]);
 	
 		//Set up physics objects
 		box_collider[0].pos = box_pos[0];
@@ -165,18 +165,19 @@ int main() {
 				vec3 mtv(0,0,0); //minimum translation vector
 				if(gjk(&player_collider, &box_collider[i], &mtv)){
 					hit_something = true;
+					float ground_slope = RAD2DEG(acos(dot(normalise(mtv), vec3(0,1,0))));
+					if(ground_slope<player_max_stand_slope){
+						player_vel.y = 0;
+						player_is_on_ground = true;
+						player_is_jumping = false;
+					}
 				}
-				
 				player_pos += mtv;
-				if(mtv.y>mtv.x && mtv.y>mtv.z && !player_is_on_ground){
-					player_vel.y = 0;
-					player_is_on_ground = true;
-					player_is_jumping = false;
-				}
+
 				player_M = translate(identity_mat4(), player_pos);
 			}
 			static float plat_fall_timer = 0;
-			const float plat_fall_time = 0.1;
+			const float plat_fall_time = 0.15;
 			if(!hit_something && player_pos.y>0){
 				plat_fall_timer += dt;
 				if(plat_fall_timer>plat_fall_time || length(player_vel)<player_top_speed/2){
@@ -186,8 +187,7 @@ int main() {
 			}
 		}
 
-		if(!freecam_mode) 
-			g_camera.update_player(player_pos, dt);
+		if(!freecam_mode) g_camera.update_player(player_pos, dt);
 
 		static bool draw_wireframe = true;
 		static bool slash_was_pressed = false;

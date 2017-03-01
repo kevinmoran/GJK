@@ -8,6 +8,7 @@ vec3 player_vel = vec3(0,0,0);
 vec4 player_colour = vec4(0.1f, 0.8f, 0.3f, 1.0f);
 bool player_is_on_ground = false;
 bool player_is_jumping = false;
+float player_max_stand_slope = 45;
 //Physics stuff
 //Thanks to Kyle Pittman for his GDC talk:
 // http://www.gdcvault.com/play/1023559/Math-for-Game-Programmers-Building
