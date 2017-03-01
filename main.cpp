@@ -299,7 +299,7 @@ int main() {
 				if(gjk(&player_collider, &sphere_collider[i])){
 					sphere_colour[i] = vec4(0.8f,0.8f,0.1f,1);
 				}
-				cylinder_colour[i] = vec4(0.1f,0.8f,0.1f,1);
+				else sphere_colour[i] = vec4(0.1f,0.8f,0.1f,1);
 				player_M = translate(identity_mat4(), player_pos);
 			}
 			//CYLINDERS
@@ -307,7 +307,6 @@ int main() {
 			{
 				vec3 mtv(0,0,0); //minimum translation vector
 				if(gjk(&player_collider, &cylinder_collider[i], &mtv)){
-				// if(gjk(&player_collider, &cylinder_collider[i])){
 					player_pos += mtv;
 					cylinder_colour[i] = vec4(0.8f,0.8f,0.1f,1);
 

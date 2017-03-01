@@ -105,10 +105,10 @@ void player_update(double dt){
         player_is_jumping = false;
     }
 
-    if(player_pos.x < -10) player_pos.x = -10;
-    if(player_pos.x >  10) player_pos.x =  10;
-    if(player_pos.z < -10) player_pos.z = -10;
-    if(player_pos.z >  10) player_pos.z =  10;
+    if(player_pos.x < -15) player_pos.x = -15;
+    if(player_pos.x >  15) player_pos.x =  15;
+    if(player_pos.z < -15) player_pos.z = -15;
+    if(player_pos.z >  15) player_pos.z =  15;
 
     //Update matrices
     player_M = translate(scale(identity_mat4(), player_scale), player_pos);
