@@ -266,11 +266,8 @@ int main() {
 		}
 		else F_was_pressed = false;
 
-		if(freecam_mode) 
-			g_camera.update_debug(dt);
-		else {
-			player_update(dt);
-		}
+		//Move player
+		if(!freecam_mode) player_update(dt);
 
 		//do collision detection
 		{
@@ -322,18 +319,24 @@ int main() {
 
 				player_M = translate(identity_mat4(), player_pos);
 			}
-			static float plat_fall_timer = 0;
-			const float plat_fall_time = 0.15;
-			if(!hit_something && player_pos.y>0){
-				plat_fall_timer += dt;
-				if(plat_fall_timer>plat_fall_time || length(player_vel)<player_top_speed/2){
-					plat_fall_timer = 0;
-					player_is_on_ground = false;
+			//Grace Period for jumping when running off platforms
+			{
+				static float plat_fall_timer = 0;
+				const float plat_fall_time = 0.15;
+				if(!hit_something && player_pos.y>0)
+				{
+					plat_fall_timer += dt;
+					if(plat_fall_timer>plat_fall_time || length(player_vel)<player_top_speed/2)
+					{
+						plat_fall_timer = 0;
+						player_is_on_ground = false;
+					}
 				}
 			}
 		}
 
-		if(!freecam_mode) g_camera.update_player(player_pos, dt);
+		if(freecam_mode) g_camera.update_debug(dt);
+		else g_camera.update_player(player_pos, dt);
 
 		static bool draw_wireframe = true;
 		static bool slash_was_pressed = false;
