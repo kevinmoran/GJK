@@ -197,12 +197,12 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
     faces[3][3] = normalise(cross(d-b, c-b)); //BDC
 
     int num_faces=4;
-    vec3 p; //new point used to expand polytope
-    
+    int closest_face;
+
     for(int iterations=0; iterations<EPA_MAX_NUM_ITERATIONS; iterations++){
         //Find face that's closest to origin
         float min_dist = dot(faces[0][0], faces[0][3]);
-        int closest_face = 0;
+        closest_face = 0;
         for(int i=1; i<num_faces; i++){
             float dist = dot(faces[i][0], faces[i][3]);
             if(dist<min_dist){
@@ -213,7 +213,7 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
 
         //search normal to face that's closest to origin
         vec3 search_dir = faces[closest_face][3]; 
-        p = coll2->support(search_dir) - coll1->support(-search_dir);
+        vec3 p = coll2->support(search_dir) - coll1->support(-search_dir);
 
         if(dot(p, search_dir)-min_dist<EPA_TOLERANCE){
             //Convergence (new point is not significantly further from origin)
@@ -251,6 +251,7 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
 
                     if(!found_edge){ //add current edge to list
                         assert(num_loose_edges<EPA_MAX_NUM_LOOSE_EDGES);
+                        if(num_loose_edges>EPA_MAX_NUM_LOOSE_EDGES) break;
                         loose_edges[num_loose_edges][0] = current_edge[0];
                         loose_edges[num_loose_edges][1] = current_edge[1];
                         num_loose_edges++;
@@ -271,6 +272,7 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
         for(int i=0; i<num_loose_edges; i++)
         {
             assert(num_faces<EPA_MAX_NUM_FACES);
+            if(num_faces>EPA_MAX_NUM_FACES) break;
             faces[num_faces][0] = loose_edges[i][0];
             faces[num_faces][1] = loose_edges[i][1];
             faces[num_faces][2] = p;
@@ -288,5 +290,6 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
         }
     } //End for iterations
     printf("EPA did not converge\n");
-    return vec3(0,0,0); //no idea what's a sensible value to return in this case
+    //Return most recent closest point
+    return faces[closest_face][3] * dot(faces[closest_face][0], faces[closest_face][3]);
 }
