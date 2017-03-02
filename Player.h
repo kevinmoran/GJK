@@ -2,7 +2,7 @@
 
 //Player data
 vec3 player_pos = vec3(0,2,0);
-float player_scale = 1.0f;
+vec3 player_scale = vec3(0.5, 0.9, 0.5);
 mat4 player_M = translate(scale(identity_mat4(), player_scale), player_pos);
 vec3 player_vel = vec3(0,0,0);
 vec4 player_colour = vec4(0.1f, 0.8f, 0.3f, 1.0f);

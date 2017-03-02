@@ -101,6 +101,33 @@ int main() {
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, cylinder_num_indices*sizeof(unsigned short), indices, GL_STATIC_DRAW);
 		free(indices);
 	}
+	//Load player mesh
+	GLuint player_vao;
+	unsigned int capsule_num_indices = 0;
+	{
+		float* vp = NULL;
+		uint16_t* indices = NULL;
+		unsigned int num_verts = 0;
+		load_obj_indexed("capsule.obj", &vp, &indices, &num_verts, &capsule_num_indices);
+
+		glGenVertexArrays(1, &player_vao);
+		glBindVertexArray(player_vao);
+		
+		GLuint points_vbo;
+		glGenBuffers(1, &points_vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
+		glBufferData(GL_ARRAY_BUFFER, num_verts*3*sizeof(float), vp, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(VP_ATTRIB_LOC);
+		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
+		glVertexAttribPointer(VP_ATTRIB_LOC, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		free(vp);
+
+		GLuint index_vbo;
+		glGenBuffers(1, &index_vbo);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_vbo);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, capsule_num_indices*sizeof(unsigned short), indices, GL_STATIC_DRAW);
+		free(indices);
+	}
 
 	//Set up level geometry
 	#define NUM_BOXES 5
@@ -201,12 +228,13 @@ int main() {
 	}
 
 	//Set up player's physics collider
-	BBox player_collider;
+	Capsule player_collider;
 	player_collider.pos = player_pos;
-	player_collider.min = vec3(-0.5, 0,-0.5);
-	player_collider.max = vec3( 0.5, 1, 0.5);
-	player_collider.matRS = identity_mat4();
-	player_collider.matRS_inverse = identity_mat4();
+	player_collider.matRS = player_M;
+	player_collider.matRS_inverse = player_M;
+	player_collider.r = 1;
+	player_collider.y_base = 1;
+	player_collider.y_cap = 2;
 
 	//Camera setup
 	g_camera.init(vec3(0,3,6), vec3(0,0,0));
@@ -280,7 +308,7 @@ int main() {
 				}
 				player_pos += mtv;
 
-				player_M = translate(identity_mat4(), player_pos);
+   				player_M = translate(scale(identity_mat4(), player_scale), player_pos);
 			}
 			//SPHERES
 			for(int i=0; i<NUM_SPHERES; i++)
@@ -289,7 +317,8 @@ int main() {
 					sphere_colour[i] = vec4(0.8f,0.8f,0.1f,1);
 				}
 				else sphere_colour[i] = vec4(0.1f,0.8f,0.1f,1);
-				player_M = translate(identity_mat4(), player_pos);
+
+				player_M = translate(scale(identity_mat4(), player_scale), player_pos);
 			}
 			//CYLINDERS
 			for(int i=0; i<NUM_CYLINDERS; i++)
@@ -309,7 +338,7 @@ int main() {
 				}
 				else cylinder_colour[i] = vec4(0.8f,0.1f,0.8f,1);
 
-				player_M = translate(identity_mat4(), player_pos);
+				player_M = translate(scale(identity_mat4(), player_scale), player_pos);
 			}
 			//Grace Period for jumping when running off platforms
 			{
@@ -388,8 +417,8 @@ int main() {
 		glDepthFunc(GL_LESS);
 		glUniformMatrix4fv(basic_shader.M_loc, 1, GL_FALSE, player_M.m);
 		glUniform4fv(colour_loc, 1, player_colour.v);
-		glBindVertexArray(cube_vao);
-		glDrawElements(GL_TRIANGLES, cube_num_indices, GL_UNSIGNED_SHORT, 0);
+		glBindVertexArray(player_vao);
+		glDrawElements(GL_TRIANGLES, capsule_num_indices, GL_UNSIGNED_SHORT, 0);
 
 		check_gl_error();
 

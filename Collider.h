@@ -53,6 +53,20 @@ struct Cylinder : Collider {
     }
 };
 
+//Capsule: Height-aligned with y-axis
+struct Capsule : Collider {
+    float r, y_base, y_cap;
+
+    vec3 support(vec3 dir){
+        dir = matRS_inverse*dir; //find support in model space
+
+        vec3 result = normalise(dir)*r;
+        result.y += (dir.y>0) ? y_cap : y_base;
+
+        return matRS*result + pos; //convert support to world space
+    }
+};
+
 //Polytope: Just a set of points
 struct Polytope : Collider {
 	float   *points;    //(x0 y0 z0 x1 y1 z1 etc)
