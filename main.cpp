@@ -231,7 +231,7 @@ int main() {
 	Capsule player_collider;
 	player_collider.pos = player_pos;
 	player_collider.matRS = player_M;
-	player_collider.matRS_inverse = player_M;
+	player_collider.matRS_inverse = inverse(player_M);
 	player_collider.r = 1;
 	player_collider.y_base = 1;
 	player_collider.y_cap = 2;
