@@ -40,11 +40,14 @@ bool load_obj_indexed(const char* 	file_name,
 														  // normal will be duplicated, making the indexing less effective
 //----------------------------------------------------------------------------------------------------------------------
 
+#define OBJ_PATH "Meshes/"
 #define OBJLOAD_LINE_SIZE 256
 
 //Load unindexed vertex positions (i.e. returns a triangulated points array), ignore tex coords and vn if present
 bool load_obj(const char* file_name, float** vp, uint32_t* vert_count){
-	FILE* fp = fopen(file_name, "r");
+	char obj_file_path[64];
+    sprintf(obj_file_path, "%s%s", OBJ_PATH, file_name);
+	FILE* fp = fopen(obj_file_path, "r");
 	if(!fp) {
 		printf("Error: Failed to open %s\n", file_name);
 		fclose(fp);
@@ -123,7 +126,9 @@ bool load_obj(const char* file_name, float** vp, uint32_t* vert_count){
 
 //Load unindexed vertex positions, tex coords and normals
 bool load_obj(const char* file_name, float** vp, float** vt, float** vn, uint32_t* vert_count){
-	FILE* fp = fopen(file_name, "r");
+	char obj_file_path[64];
+    sprintf(obj_file_path, "%s%s", OBJ_PATH, file_name);
+	FILE* fp = fopen(obj_file_path, "r");
 	if(!fp) {
 		printf("Error: Failed to open %s\n", file_name);
 		fclose(fp);
@@ -274,7 +279,9 @@ bool load_obj(const char* file_name, float** vp, float** vt, float** vn, uint32_
 
 //Load vertex positions with index buffer, ignore tex coords and normals if present
 bool load_obj_indexed(const char* file_name, float** vp, uint16_t** indices, uint32_t* vert_count, uint32_t* index_count){
-	FILE* fp = fopen(file_name, "r");
+	char obj_file_path[64];
+    sprintf(obj_file_path, "%s%s", OBJ_PATH, file_name);
+	FILE* fp = fopen(obj_file_path, "r");
 	if(!fp) {
 		printf("Error: Failed to open %s\n", file_name);
 		fclose(fp);
@@ -356,7 +363,9 @@ bool load_obj_indexed(const char* file_name, float** vp, uint16_t** indices, uin
 //Load vertex positions, tex coords and normals with index buffer
 //Smooth normals by default
 bool load_obj_indexed(const char* file_name, float** vp, float** vt, float** vn, uint16_t** indices, uint32_t* vert_count, uint32_t* index_count, bool smooth_normals){
-	FILE* fp = fopen(file_name, "r");
+	char obj_file_path[64];
+    sprintf(obj_file_path, "%s%s", OBJ_PATH, file_name);
+	FILE* fp = fopen(obj_file_path, "r");
 	if(!fp) {
 		printf("Error: Failed to open %s\n", file_name);
 		fclose(fp);
