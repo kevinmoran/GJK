@@ -250,8 +250,8 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
                     }//endfor loose_edges
 
                     if(!found_edge){ //add current edge to list
-                        assert(num_loose_edges<EPA_MAX_NUM_LOOSE_EDGES);
-                        if(num_loose_edges>EPA_MAX_NUM_LOOSE_EDGES) break;
+                        // assert(num_loose_edges<EPA_MAX_NUM_LOOSE_EDGES);
+                        if(num_loose_edges>=EPA_MAX_NUM_LOOSE_EDGES) break;
                         loose_edges[num_loose_edges][0] = current_edge[0];
                         loose_edges[num_loose_edges][1] = current_edge[1];
                         num_loose_edges++;
@@ -271,8 +271,8 @@ vec3 EPA(vec3 a, vec3 b, vec3 c, vec3 d, Collider* coll1, Collider* coll2){
         //Reconstruct polytope with p added
         for(int i=0; i<num_loose_edges; i++)
         {
-            assert(num_faces<EPA_MAX_NUM_FACES);
-            if(num_faces>EPA_MAX_NUM_FACES) break;
+            // assert(num_faces<EPA_MAX_NUM_FACES);
+            if(num_faces>=EPA_MAX_NUM_FACES) break;
             faces[num_faces][0] = loose_edges[i][0];
             faces[num_faces][1] = loose_edges[i][1];
             faces[num_faces][2] = p;
