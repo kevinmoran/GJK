@@ -131,13 +131,9 @@ int main() {
 		box_M[4] = translate(rotate_z_deg(scale(identity_mat4(),box_scale[4]), 50), box_pos[4]);
 	
 		//Set up physics objects
-		box_collider[0].pos = box_pos[0];
-		box_collider[1].pos = box_pos[1];
-		box_collider[2].pos = box_pos[2];
-		box_collider[3].pos = box_pos[3];
-		box_collider[4].pos = box_pos[4];
 		for(int i=0; i<NUM_BOXES; i++)
 		{
+			box_collider[i].pos = box_pos[i];
 			box_collider[i].min = vec3(-0.5, 0,-0.5);
 			box_collider[i].max = vec3( 0.5, 1, 0.5);
 			box_collider[i].matRS = box_M[i];
@@ -161,11 +157,9 @@ int main() {
 		sphere_M[2] = translate(identity_mat4(), sphere_pos[2]);
 	
 		//Set up physics objects
-		sphere_collider[0].pos = sphere_pos[0];
-		sphere_collider[1].pos = sphere_pos[1];
-		sphere_collider[2].pos = sphere_pos[2];
 		for(int i=0; i<NUM_SPHERES; i++)
 		{
+			sphere_collider[i].pos = sphere_pos[i];
 			sphere_collider[i].r = 1;
 			sphere_collider[i].matRS = sphere_M[i];
 			sphere_collider[i].matRS_inverse = inverse(sphere_M[i]);
@@ -194,11 +188,9 @@ int main() {
 		cylinder_M[2] = translate(scale(identity_mat4(), vec3(cylinder_r[2], cylinder_h[2], cylinder_r[2])), cylinder_pos[2]);
 	
 		//Set up physics objects
-		cylinder_collider[0].pos = cylinder_pos[0];
-		cylinder_collider[1].pos = cylinder_pos[1];
-		cylinder_collider[2].pos = cylinder_pos[2];
 		for(int i=0; i<NUM_CYLINDERS; i++)
 		{
+			cylinder_collider[i].pos = cylinder_pos[i];
 			cylinder_collider[i].r = 1;
 			cylinder_collider[i].y_base = cylinder_pos[i].y;
 			cylinder_collider[i].y_cap = cylinder_pos[i].y + 1;
