@@ -326,7 +326,6 @@ int main() {
 				vec3 mtv(0,0,0); //minimum translation vector
 				if(gjk(&player_collider, &cylinder_collider[i], &mtv)){
 					player_pos += mtv;
-					cylinder_colour[i] = vec4(0.8f,0.8f,0.1f,1);
 
 					hit_something = true;
 					float ground_slope = RAD2DEG(acos(dot(normalise(mtv), vec3(0,1,0))));
@@ -336,7 +335,6 @@ int main() {
 						player_is_jumping = false;
 					}
 				}
-				else cylinder_colour[i] = vec4(0.8f,0.1f,0.8f,1);
 
 				player_M = translate(scale(identity_mat4(), player_scale), player_pos);
 			}
