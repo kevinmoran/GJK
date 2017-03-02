@@ -62,11 +62,18 @@ bool init_gl(GLFWwindow* &window, const char* title, int window_width, int windo
 }
 
 //TODO put this somewhere sensible!
-//Note: for MSVC, change __builtin_trap() to __debugbreak()
+#if defined(__clang__)
+#define _BREAKPOINT_CALL __asm__ volatile("int $0x03")
+#elif defined(__GNUC__)
+#define _BREAKPOINT_CALL __builtin_trap()
+#elif defined(_MSC_VER_)
+#define _BREAKPOINT_CALL __debugbreak()
+#endif
+
 #define assert(exp) \
 	{if(!(exp)) { \
 		printf("Assertion failed in %s, Line %d:\n%s\n...", __FILE__, __LINE__, #exp); \
-		__builtin_trap(); \
+		_BREAKPOINT_CALL; \
 	}} \
 
 #define check_gl_error() _checkOglError(__FILE__, __LINE__)
