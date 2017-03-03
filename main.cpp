@@ -292,15 +292,15 @@ int main() {
 		//do collision detection
 		{
 			player_collider.pos = player_pos;
-			bool hit_something = false;
+			bool hit_ground = false;
 			//BOXES
 			for(int i=0; i<NUM_BOXES; i++)
 			{
 				vec3 mtv(0,0,0); //minimum translation vector
 				if(gjk(&player_collider, &box_collider[i], &mtv)){
-					hit_something = true;
 					float ground_slope = RAD2DEG(acos(dot(normalise(mtv), vec3(0,1,0))));
 					if(ground_slope<player_max_stand_slope){
+						hit_ground = true;
 						player_vel.y = 0;
 						player_is_on_ground = true;
 						player_is_jumping = false;
@@ -325,29 +325,28 @@ int main() {
 			{
 				vec3 mtv(0,0,0); //minimum translation vector
 				if(gjk(&player_collider, &cylinder_collider[i], &mtv)){
-					player_pos += mtv;
-
-					hit_something = true;
 					float ground_slope = RAD2DEG(acos(dot(normalise(mtv), vec3(0,1,0))));
 					if(ground_slope<player_max_stand_slope){
+						hit_ground = true;
 						player_vel.y = 0;
 						player_is_on_ground = true;
 						player_is_jumping = false;
 					}
 				}
+				player_pos += mtv;
 
 				player_M = translate(scale(identity_mat4(), player_scale), player_pos);
 			}
 			//Grace Period for jumping when running off platforms
 			{
-				static float plat_fall_timer = 0;
-				const float plat_fall_time = 0.15;
-				if(!hit_something && player_pos.y>0)
+				static float grace_timer = 0;
+				const float grace_time = 0.25;
+				if(!hit_ground && player_pos.y>0)
 				{
-					plat_fall_timer += dt;
-					if(plat_fall_timer>plat_fall_time || length(player_vel)<player_top_speed/2)
+					grace_timer += dt;
+					if(grace_timer>grace_time*1.5*length(player_vel)/player_top_speed)
 					{
-						plat_fall_timer = 0;
+						grace_timer = 0;
 						player_is_on_ground = false;
 					}
 				}
