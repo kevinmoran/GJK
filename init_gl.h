@@ -62,10 +62,8 @@ bool init_gl(GLFWwindow* &window, const char* title, int window_width, int windo
 }
 
 //TODO put this somewhere sensible!
-#if defined(__clang__)
+#if defined(__clang__) || defined(__GNUC__)
 #define _BREAKPOINT_CALL __asm__ volatile("int $0x03")
-#elif defined(__GNUC__)
-#define _BREAKPOINT_CALL __builtin_trap()
 #elif defined(_MSC_VER_)
 #define _BREAKPOINT_CALL __debugbreak()
 #endif
