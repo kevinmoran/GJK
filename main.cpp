@@ -37,7 +37,6 @@ int main() {
 		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
 		glBufferData(GL_ARRAY_BUFFER, num_verts*3*sizeof(float), vp, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(VP_ATTRIB_LOC);
-		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
 		glVertexAttribPointer(VP_ATTRIB_LOC, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 		free(vp);
 
@@ -64,7 +63,6 @@ int main() {
 		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
 		glBufferData(GL_ARRAY_BUFFER, num_verts*3*sizeof(float), vp, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(VP_ATTRIB_LOC);
-		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
 		glVertexAttribPointer(VP_ATTRIB_LOC, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 		free(vp);
 
@@ -91,7 +89,6 @@ int main() {
 		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
 		glBufferData(GL_ARRAY_BUFFER, num_verts*3*sizeof(float), vp, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(VP_ATTRIB_LOC);
-		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
 		glVertexAttribPointer(VP_ATTRIB_LOC, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 		free(vp);
 
@@ -118,7 +115,6 @@ int main() {
 		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
 		glBufferData(GL_ARRAY_BUFFER, num_verts*3*sizeof(float), vp, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(VP_ATTRIB_LOC);
-		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
 		glVertexAttribPointer(VP_ATTRIB_LOC, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 		free(vp);
 
