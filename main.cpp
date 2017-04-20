@@ -327,9 +327,7 @@ int main() {
 						player_is_jumping = false;
 					}
 				}
-				player_pos += mtv;
-
-   				player_M = translate(scale(identity_mat4(), player_scale), player_pos);
+				player_collider.pos += mtv;
 			}
 			//SPHERES
 			for(int i=0; i<NUM_SPHERES; i++)
@@ -338,8 +336,6 @@ int main() {
 					sphere_colour[i] = vec4(0.8f,0.8f,0.1f,1);
 				}
 				else sphere_colour[i] = vec4(0.1f,0.8f,0.1f,1);
-
-				player_M = translate(scale(identity_mat4(), player_scale), player_pos);
 			}
 			//CYLINDERS
 			for(int i=0; i<NUM_CYLINDERS; i++)
@@ -354,9 +350,7 @@ int main() {
 						player_is_jumping = false;
 					}
 				}
-				player_pos += mtv;
-
-				player_M = translate(scale(identity_mat4(), player_scale), player_pos);
+				player_collider.pos += mtv;
 			}
 			//Triangle
 			if(gjk(&player_collider, &triangle_collider)){
@@ -364,8 +358,7 @@ int main() {
 				float penetration_depth = dot(support-triangle_collider.points[0], -triangle_collider.normal);
 				vec3 mtv = triangle_collider.normal*penetration_depth;
 
-				player_pos += mtv;
-				player_M = translate(scale(identity_mat4(), player_scale), player_pos);
+				player_collider.pos += mtv;
 			}
 
 			//Grace Period for jumping when running off platforms
@@ -382,6 +375,9 @@ int main() {
 					}
 				}
 			}
+
+			player_pos = player_collider.pos;
+			player_M = translate(scale(identity_mat4(), player_scale), player_pos);
 		}
 
 		if(freecam_mode) g_camera.update_debug(dt);
