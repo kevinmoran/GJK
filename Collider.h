@@ -67,6 +67,38 @@ struct Capsule : Collider {
     }
 };
 
+//Triangle: Kind of a hack 
+// "All physics code is an awful hack" - Will, #HandmadeDev
+//Need to fake a prism for GJK to converge
+//NB: Currently using world-space points, ignore matRS and pos from base class
+//Don't use EPA with this! Might resolve collision along any one of prism's faces
+//Only resolve around triangle normal
+struct TriangleCollider : Collider {
+    vec3 points[3];
+    vec3 normal;
+
+    vec3 support(vec3 dir){
+        //Find which triangle vertex is furthest along dir
+        float dot0 = dot(points[0], dir);
+        float dot1 = dot(points[1], dir);
+        float dot2 = dot(points[2], dir);
+        vec3 furthest_point = points[0];
+        if(dot1>dot0){
+            furthest_point = points[1];
+            if(dot2>dot1) 
+                furthest_point = points[2];
+        }
+        else if(dot2>dot0) {
+            furthest_point = points[2];
+        }
+
+        //fake some depth behind triangle so we have volume
+        if(dot(dir, normal)<0) furthest_point-= normal; 
+
+        return furthest_point;
+    }
+};
+
 //Polytope: Just a set of points
 struct Polytope : Collider {
 	float   *points;    //(x0 y0 z0 x1 y1 z1 etc)

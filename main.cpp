@@ -125,6 +125,31 @@ int main() {
 		free(indices);
 	}
 
+	//Load a triangle
+	GLuint triangle_vao;
+	int triangle_num_points = 3;
+	TriangleCollider triangle_collider;
+	{
+		vec3 p0 = vec3(-10,0,10);
+		vec3 p1 = vec3(-10,0,-10);
+		vec3 p2 = vec3(-10,10,0);
+
+		triangle_collider.points[0] = p0;
+		triangle_collider.points[1] = p1;
+		triangle_collider.points[2] = p2;
+		triangle_collider.normal = normalise(cross(p1-p0,p2-p0));
+
+		glGenVertexArrays(1, &triangle_vao);
+		glBindVertexArray(triangle_vao);
+		
+		GLuint points_vbo;
+		glGenBuffers(1, &points_vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, points_vbo);
+		glBufferData(GL_ARRAY_BUFFER, 3*3*sizeof(float), triangle_collider.points, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(VP_ATTRIB_LOC);
+		glVertexAttribPointer(VP_ATTRIB_LOC, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+	}
+
 	//Set up level geometry
 	#define NUM_BOXES 5
 	mat4 box_M[NUM_BOXES];
@@ -333,6 +358,16 @@ int main() {
 
 				player_M = translate(scale(identity_mat4(), player_scale), player_pos);
 			}
+			//Triangle
+			if(gjk(&player_collider, &triangle_collider)){
+				vec3 support = player_collider.support(-triangle_collider.normal);
+				float penetration_depth = dot(support-triangle_collider.points[0], -triangle_collider.normal);
+				vec3 mtv = triangle_collider.normal*penetration_depth;
+
+				player_pos += mtv;
+				player_M = translate(scale(identity_mat4(), player_scale), player_pos);
+			}
+
 			//Grace Period for jumping when running off platforms
 			{
 				static float grace_timer = 0;
@@ -412,6 +447,12 @@ int main() {
 		glUniform4fv(colour_loc, 1, player_colour.v);
 		glBindVertexArray(player_vao);
 		glDrawElements(GL_TRIANGLES, capsule_num_indices, GL_UNSIGNED_SHORT, 0);
+
+		//Triangle
+		glUniformMatrix4fv(basic_shader.M_loc, 1, GL_FALSE, identity_mat4().m);
+		glUniform4fv(colour_loc, 1, vec4(0.6,0,0.8,1).v);
+		glBindVertexArray(triangle_vao);
+		glDrawArrays(GL_TRIANGLES, 0, triangle_num_points);
 
 		check_gl_error();
 
