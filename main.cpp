@@ -7,6 +7,7 @@ GLFWwindow* window = NULL;
 int gl_width = 1080;
 int gl_height = 720;
 float gl_aspect_ratio = (float)gl_width/gl_height;
+float gl_fullscreen = false;
 
 #include "GameMaths.h"
 #include "Input.h"
@@ -300,9 +301,31 @@ int main() {
 		}
 
 		static bool freecam_mode = false;
+		static bool tab_was_pressed = false;
+		if(glfwGetKey(window, GLFW_KEY_TAB)) {
+			if(!tab_was_pressed) { freecam_mode = !freecam_mode; }
+			tab_was_pressed = true;
+		}
+		else tab_was_pressed = false;
+
+		//Ctrl/Command-F to toggle fullscreen
+		//Note: window_resize_callback takes care of resizing viewport/recalculating P matrix
 		static bool F_was_pressed = false;
 		if(glfwGetKey(window, GLFW_KEY_F)) {
-			if(!F_was_pressed) { freecam_mode = !freecam_mode; }
+			if(!F_was_pressed){
+				if(glfwGetKey(window, CTRL_KEY_LEFT) || glfwGetKey(window, CTRL_KEY_RIGHT)){
+					gl_fullscreen = !gl_fullscreen;
+					static int old_win_x, old_win_y, old_win_w, old_win_h;
+					if(gl_fullscreen){
+						glfwGetWindowPos(window, &old_win_x, &old_win_y);
+						glfwGetWindowSize(window, &old_win_w, &old_win_h);
+						GLFWmonitor* mon = glfwGetPrimaryMonitor();
+						const GLFWvidmode* vidMode = glfwGetVideoMode(mon);
+						glfwSetWindowMonitor(window, mon, 0, 0, vidMode->width, vidMode->height, vidMode->refreshRate);
+					}
+					else glfwSetWindowMonitor(window, NULL, old_win_x, old_win_y, old_win_w, old_win_h, GLFW_DONT_CARE);
+				}
+			}
 			F_was_pressed = true;
 		}
 		else F_was_pressed = false;
