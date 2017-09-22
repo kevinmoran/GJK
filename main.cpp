@@ -443,13 +443,13 @@ int main() {
 				glDepthFunc(GL_ALWAYS);
 				glUniform4fv(colour_loc, 1, vec4(0,0,0,1).v);
 				glDrawElements(GL_TRIANGLES, cube_num_indices, GL_UNSIGNED_SHORT, 0);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				glDepthFunc(GL_LESS);
 			}
 		}
 		//Spheres
 		glBindVertexArray(sphere_vao);
 		for(int i=0; i<NUM_SPHERES; i++){
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			glDepthFunc(GL_LESS);
 			glUniform4fv(colour_loc, 1, sphere_colour[i].v);
 			glUniformMatrix4fv(basic_shader.M_loc, 1, GL_FALSE, sphere_M[i].m);
 			glDrawElements(GL_TRIANGLES, sphere_num_indices, GL_UNSIGNED_SHORT, 0);
@@ -457,8 +457,6 @@ int main() {
 		//Cylinders
 		glBindVertexArray(cylinder_vao);
 		for(int i=0; i<NUM_CYLINDERS; i++){
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			glDepthFunc(GL_LESS);
 			glUniform4fv(colour_loc, 1, cylinder_colour[i].v);
 			glUniformMatrix4fv(basic_shader.M_loc, 1, GL_FALSE, cylinder_M[i].m);
 			glDrawElements(GL_TRIANGLES, cylinder_num_indices, GL_UNSIGNED_SHORT, 0);
@@ -468,11 +466,11 @@ int main() {
 				glDepthFunc(GL_ALWAYS);
 				glUniform4fv(colour_loc, 1, vec4(0,0,0,1).v);
 				glDrawElements(GL_TRIANGLES, cylinder_num_indices, GL_UNSIGNED_SHORT, 0);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				glDepthFunc(GL_LESS);
 			}
 		}
 		//Player
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		glDepthFunc(GL_LESS);
 		glUniformMatrix4fv(basic_shader.M_loc, 1, GL_FALSE, player_M.m);
 		glUniform4fv(colour_loc, 1, player_colour.v);
 		glBindVertexArray(player_vao);
