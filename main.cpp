@@ -1,7 +1,8 @@
 #define GL_LITE_IMPLEMENTATION
+#include <stdio.h>
+
 #include "gl_lite.h"
 #include <GLFW/glfw3.h>
-#include <stdio.h>
 
 GLFWwindow* window = NULL;
 int gl_width = 1080;
