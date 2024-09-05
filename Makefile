@@ -58,9 +58,16 @@ else
 		ifneq ($(BUILD_DIR),) #Check if build dir was specified, don't try to create one if not
         	PREBUILD = @mkdir -p $(BUILD_DIR)
 		endif
-	else
-		#--- LINUX --- TODO?
-		$(error ERROR: Unsupported build platform)
+	else ifeq ($(UNAME_S),Linux)
+		#--- LINUX ---
+		# Debian: apt-get install libglfw3-dev libglvnd-dev
+		# Fedora: dnf/yum install glfw-devel libglvnd-devel
+		# Gentoo: emerge --noreplace media-libs/glfw media-libs/libglvnd
+		LIBS = $(shell pkg-config --libs glfw3 gl)
+		FLAGS = $(COMPILER_FLAGS) $(shell pkg-config --cflags glfw3 gl)
+		ifneq ($(BUILD_DIR),) #Check if build dir was specified, don't try to create one if not
+			PREBUILD = @mkdir -p $(BUILD_DIR)
+		endif
 	endif
 endif
 
